@@ -1,11 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator, Pressable, Alert, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  Pressable,
+  Alert,
+  StyleSheet,
+  useWindowDimensions,
+} from 'react-native';
 import { Link } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import RenderHtml from 'react-native-render-html'; // <-- HTML rendering library
 import { fetchNotes, deleteNote } from '../../lib/api';
 import { Note } from '@/app/types';
 
+/**
+ * NOTE: RenderHtml will render entire HTML by default.
+ * If you only want a small preview (2 lines, for example),
+ * you can limit container height (e.g., 60 px) and clip
+ * overflowing text. See styles.htmlPreviewContainer below.
+ */
+
 const NotesScreen = () => {
+  const { width } = useWindowDimensions(); // Used to set contentWidth for RenderHtml
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,7 +52,7 @@ const NotesScreen = () => {
           onPress: async () => {
             try {
               await deleteNote(id);
-              setNotes(prev => prev.filter(note => note.id !== id));
+              setNotes((prev) => prev.filter((note) => note.id !== id));
             } catch (error) {
               Alert.alert('Error', 'Failed to delete note');
             }
@@ -68,23 +86,38 @@ const NotesScreen = () => {
                 <Pressable
                   style={({ pressed }) => [
                     styles.noteCard,
-                    pressed && { opacity: 0.9 }
+                    pressed && { opacity: 0.9 },
                   ]}
                 >
+                  {/* Title */}
                   <Text style={styles.noteTitle}>{item.title}</Text>
-                  <Text 
-                    numberOfLines={2} 
-                    style={styles.noteContent}
-                  >
-                    {item.content}
-                  </Text>
+
+                  {/* HTML Preview */}
+                  <View style={styles.htmlPreviewContainer}>
+                    <RenderHtml
+                      contentWidth={width - 32} // minus horizontal padding
+                      source={{ html: item.content }}
+                      tagsStyles={{
+                        body: {
+                          margin: 0,
+                          color: '#666',
+                          fontSize: 14,
+                          lineHeight: 20,
+                        },
+                      }}
+                    />
+                  </View>
+
+                  {/* Footer (date + delete button) */}
                   <View style={styles.noteFooter}>
                     <Text style={styles.noteDate}>
                       {new Date(item.created_at).toLocaleDateString()}
                     </Text>
-                    <Pressable 
+                    <Pressable
                       onPress={() => handleDeleteNote(item.id)}
-                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+                      style={({ pressed }) => ({
+                        opacity: pressed ? 0.6 : 1,
+                      })}
                     >
                       <MaterialIcons name="delete" size={20} color="#ff3b30" />
                     </Pressable>
@@ -115,6 +148,8 @@ const NotesScreen = () => {
   );
 };
 
+export default NotesScreen;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -143,12 +178,24 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     marginBottom: 8,
   },
-  noteContent: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
+
+  /**
+   * If you'd like to "truncate" the preview to a certain height
+   * (approx. 2 lines), you can set:
+   *   maxHeight: 45 or 50,
+   *   overflow: 'hidden'
+   *
+   * For example, to show ~2 lines, uncomment below:
+   *
+   * maxHeight: 45,
+   * overflow: 'hidden',
+   */
+  htmlPreviewContainer: {
     marginBottom: 12,
+    maxHeight: 45,
+    overflow: 'hidden',
   },
+
   noteFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -191,5 +238,3 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 });
-
-export default NotesScreen;

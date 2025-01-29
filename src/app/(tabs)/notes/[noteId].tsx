@@ -1,14 +1,24 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Pressable, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Pressable,
+  Alert,
+  useWindowDimensions,
+} from 'react-native';
 import { useLocalSearchParams, Link, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import { getNoteById} from '../../../lib/api';
+import RenderHtml from 'react-native-render-html'; // <-- Import here
+import { getNoteById } from '../../../lib/api';
 import { Note } from '../../../app/types'; // Or your actual path to types.ts
 
 export default function NoteDetailScreen() {
   const { noteId } = useLocalSearchParams<{ noteId: string }>();
   const [note, setNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
+  const { width } = useWindowDimensions(); // For RenderHtml
 
   useEffect(() => {
     const loadNote = async () => {
@@ -45,6 +55,7 @@ export default function NoteDetailScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color="#007AFF" />
@@ -56,17 +67,32 @@ export default function NoteDetailScreen() {
         </Link>
       </View>
 
+      {/* Content Container */}
       <View style={styles.content}>
         <Text style={styles.title}>{note.title}</Text>
         <Text style={styles.date}>
           {new Date(note.created_at).toLocaleDateString()}
         </Text>
-        <Text style={styles.body}>{note.content}</Text>
+
+        {/* Render the HTML content here */}
+        <RenderHtml
+          contentWidth={width - 40} // subtract padding if needed
+          source={{ html: note.content || '' }}
+          tagsStyles={{
+            body: {
+              margin: 0,
+              color: '#333',
+              fontSize: 16,
+              lineHeight: 24,
+            },
+          }}
+        />
       </View>
     </View>
   );
 }
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -86,6 +112,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   content: {
+    flex: 1,
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
@@ -105,10 +132,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 16,
-  },
-  body: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
   },
 });
