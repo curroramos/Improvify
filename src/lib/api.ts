@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-import { Note } from '../app/types'; // Adjust the import path as needed
+import { Note } from '@/app/types'; // Adjust the import path as needed
 
 // Fetch all notes
 export const fetchNotes = async (): Promise<Note[]> => {
@@ -49,5 +49,21 @@ export const deleteNote = async (id: string): Promise<null> => {
   const { data, error } = await supabase.from('notes').delete().eq('id', id);
   if (error) throw error;
   return data;
+};
+
+export const getNoteById = async (id: string): Promise<Note> => {
+  try {
+    const response = await supabase
+      .from('notes')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (response.error) throw response.error;
+    return response.data as Note;
+  } catch (error) {
+    console.error('Error fetching note:', error);
+    throw error;
+  }
 };
 
