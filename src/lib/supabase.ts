@@ -1,17 +1,20 @@
 import 'react-native-url-polyfill/auto';
 import * as SecureStore from 'expo-secure-store';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, OAuthResponse } from '@supabase/supabase-js';
+import { 
+  AuthError, 
+  Session, 
+  User, 
+  UserResponse,
+  AuthTokenResponse,
+  AuthResponse 
+} from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
 
 const ExpoSecureStoreAdapter = {
-  getItem: (key: string) => {
-    return SecureStore.getItemAsync(key);
-  },
-  setItem: (key: string, value: string) => {
-    SecureStore.setItemAsync(key, value);
-  },
-  removeItem: (key: string) => {
-    SecureStore.deleteItemAsync(key);
-  },
+  getItem: (key: string) => SecureStore.getItemAsync(key),
+  setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
+  removeItem: (key: string) => SecureStore.deleteItemAsync(key),
 };
 
 const supabaseUrl = 'https://rhcrjwebjmwhtctyohjp.supabase.co';
@@ -19,9 +22,82 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: ExpoSecureStoreAdapter as any,
+    storage: ExpoSecureStoreAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
   },
 });
+
+// Authentication API with proper typing
+export const auth = {
+  // Email/Password Authentication
+  async signInWithEmail(email: string, password: string): Promise<AuthTokenResponse> {
+    return supabase.auth.signInWithPassword({ email, password });
+  },
+
+  async signUpWithEmail(email: string, password: string): Promise<AuthResponse> {
+    return supabase.auth.signUp({ email, password });
+  },
+
+  // Session Management
+  async getSession(): Promise<Session | null> {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
+  },
+
+  async signOut(): Promise<{ error: AuthError | null }> {
+    return supabase.auth.signOut();
+  },
+
+  // Password Reset
+  async resetPassword(email: string): Promise<{ error: AuthError | null }> {
+    return supabase.auth.resetPasswordForEmail(email);
+  },
+
+  async updatePassword(newPassword: string): Promise<UserResponse> {
+    return supabase.auth.updateUser({ password: newPassword });
+  },
+
+  // Social Auth
+  async signInWithGoogle(): Promise<OAuthResponse> {
+    return supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: 'your-app-scheme://auth/callback' },
+    });
+  },
+
+  // Auth State Listener
+  onAuthStateChange(callback: (event: string, session: Session | null) => void) {
+    return supabase.auth.onAuthStateChange((event, session) => {
+      callback(event, session);
+    });
+  },
+};
+
+// Custom Hook for Auth State Management
+export const useAuth = () => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setLoading(false);
+    };
+
+    fetchSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setLoading(false);
+      }
+    );
+
+    return () => subscription?.unsubscribe();
+  }, []);
+
+  return { session, loading };
+};

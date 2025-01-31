@@ -4,7 +4,6 @@ import { Tabs } from 'expo-router';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 
-// Tab Bar Icon Component
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
@@ -18,29 +17,34 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: true,
+        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].primary.main,
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: Colors[colorScheme ?? 'light'].background,
+          borderTopWidth: 0,
+          elevation: 0,
+        },
+        tabBarShowLabel: false
       }}
     >
+      {/* Home Tab */}
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+        }}
+      />
+
       {/* Notes Tab */}
       <Tabs.Screen
-        name="NotesScreen"
+        name="notes"
         options={{
-          title: 'Notes',
+          title: 'Reflections',
           tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
         }}
       />
 
-      {/* Tab Two */}
-      <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-        }}
-      />
-
-    <Tabs.Screen name="index" options={{ href: null }} />
     </Tabs>
   );
 }

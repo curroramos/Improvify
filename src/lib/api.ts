@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-import { Note } from '@/app/types'; // Adjust the import path as needed
+import { Note } from '../app/types'; // Adjust the import path as needed
 
 // Fetch all notes
 export const fetchNotes = async (): Promise<Note[]> => {
