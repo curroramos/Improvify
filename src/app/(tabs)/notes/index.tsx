@@ -4,24 +4,21 @@ import {
   Text,
   FlatList,
   ActivityIndicator,
-  Pressable,
+  TouchableOpacity,
   Alert,
   StyleSheet,
-  useColorScheme, // <-- import useColorScheme
+  useColorScheme,
 } from 'react-native';
 import { Link } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
-import { fetchNotes, deleteNote } from '../../../lib/api';
-import { Note } from '../../types';
-
-// 1. Import your color scheme
+import * as Haptics from 'expo-haptics'; // For haptic feedback on interactions
+import { fetchNotes, deleteNote } from '../../../lib/api/notes';
+import { Note } from '../../../types';
 import Colors from '../../../constants/Colors';
+import NoteCard from '@/components/NoteCard';
+import EmptyState from '@/components/EmptyState';
 
 const NotesScreen = () => {
-  // 2. Detect the user's preferred color scheme
   const colorScheme = useColorScheme() as 'light' | 'dark';
-
-  // 3. Get the appropriate palette (fallback to light if null)
   const theme = Colors[colorScheme] || Colors.light;
 
   const [notes, setNotes] = useState<Note[]>([]);
@@ -31,7 +28,6 @@ const NotesScreen = () => {
   const loadNotes = async () => {
     try {
       const data = await fetchNotes();
-      // Filter out null notes just in case
       setNotes(data.filter((note): note is Note => note !== null));
     } catch (error) {
       Alert.alert('Error', 'Failed to load notes');
@@ -54,6 +50,7 @@ const NotesScreen = () => {
             try {
               await deleteNote(id);
               setNotes((prev) => prev.filter((note) => note.id !== id));
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // Subtle haptic feedback
             } catch (error) {
               Alert.alert('Error', 'Failed to delete note');
             }
@@ -75,11 +72,9 @@ const NotesScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Show loader while fetching */}
       {loading ? (
         <ActivityIndicator
           size="large"
-          // Use theme.primary.main for the loader color
           color={theme.primary.main}
           style={styles.loader}
         />
@@ -89,53 +84,26 @@ const NotesScreen = () => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) =>
-            item ? (
+            item && (
               <Link href={`/notes/${item.id}`} asChild>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.noteCard,
-                    { backgroundColor: theme.card },
-                    pressed && { opacity: 0.9 },
-                  ]}
-                >
-                  <Text style={[styles.noteTitle, { color: theme.text }]}>
-                    {item.title}
-                  </Text>
-
-                  {/* Footer (date + delete) */}
-                  <View style={styles.noteFooter}>
-                    <Text style={[styles.noteDate, { color: theme.textSecondary }]}>
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </Text>
-                    <Pressable
-                      onPress={() => handleDeleteNote(item.id)}
-                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-                    >
-                      {/* Use theme.danger.main for delete icon */}
-                      <MaterialIcons
-                        name="delete"
-                        size={20}
-                        color={theme.danger.main}
-                      />
-                    </Pressable>
-                  </View>
-                </Pressable>
+                <NoteCard
+                  note={item}
+                  onDelete={handleDeleteNote}
+                  backgroundColor={theme.card}
+                  textColor={theme.text}
+                  textSecondaryColor={theme.textSecondary}
+                  dangerColor={theme.danger.main}
+                />
               </Link>
-            ) : null
+            )
           }
           refreshing={refreshing}
           onRefresh={handleRefresh}
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              {/* For the empty icon, use theme.border or textSecondary */}
-              <MaterialIcons name="note-add" size={48} color={theme.border} />
-              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                No reflections yet!
-              </Text>
-              <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>
-                Tap the + button to begin
-              </Text>
-            </View>
+            <EmptyState
+              iconColor={theme.border}
+              textColor={theme.textSecondary}
+            />
           }
         />
       )}
@@ -156,10 +124,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   noteCard: {
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    // Basic shadow / elevation
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -169,12 +136,12 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 8,
   },
   noteFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 8,
   },
   noteDate: {
     fontSize: 12,
@@ -185,28 +152,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 40,
   },
+  blurView: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
   emptyText: {
     fontSize: 16,
-    marginTop: 16,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    marginTop: 8,
+    textAlign: 'center',
   },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // Shadow / elevation for the FAB
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 6,
-  },
+  deleteButton: {
+    padding: 8, // Add padding for better touch area
+    borderRadius: 4, // Optional: Rounded corners
+  }
 });

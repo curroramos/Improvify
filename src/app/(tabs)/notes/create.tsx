@@ -15,7 +15,10 @@ import { KeyboardAvoidingView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { RichEditor, RichToolbar } from 'react-native-pell-rich-editor';
 import { Link, router } from 'expo-router';
-import { createNote } from '../../../lib/api';
+import { createNote } from '@/lib/api/notes';
+import { createChallenges, Challenge } from '@/lib/api/challenges';
+import { generateChallenges } from '@/services/aiService';
+import { supabase, useAuth } from '@/lib/supabase';
 
 /** Hardcoded templates */
 const TEMPLATES = [
@@ -42,11 +45,14 @@ const TEMPLATES = [
 ];
 
 export default function CreateNoteScreen() {
+  const { userId } = useAuth(); // Get the logged-in user ID
+
   const richText = useRef<RichEditor>(null);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
 
   /** Get current date in a friendly format (e.g. "Monday, January 28, 2025") */
@@ -80,26 +86,68 @@ export default function CreateNoteScreen() {
   /** Handle saving the note */
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim()) return;
+    if (!userId) {
+      console.error('Error: No user ID found');
+      alert('Please log in first.');
+      return;
+    }
+
     setIsSubmitting(true);
+    setIsGenerating(true);
 
     try {
-      // Save with HTML content from the rich editor
-      await createNote(
-        title,
-        content,
-        'b4e0c3e8-3e98-4a9d-8f34-6c1c9c7c7a30'
-      );
+      console.log('[1/5] Starting note creation...');
+      const newNote = await createNote(title, content, userId); // Use real user ID
+      console.log('[2/5] Note created:', newNote);
 
-      // Reset fields
-      setTitle(getFormattedDate());
-      setContent(TEMPLATES[0].content);
+      console.log('[3/5] Generating challenges...');
+      const challengesJson = await generateChallenges(content);
+      console.log('Raw AI response:', challengesJson);
 
-      router.back();
+      // Validate JSON structure
+      let parsedChallenges;
+      try {
+        parsedChallenges = JSON.parse(challengesJson).challenges;
+        if (!Array.isArray(parsedChallenges) || parsedChallenges.length === 0) {
+          throw new Error('Invalid challenges format from AI');
+        }
+      } catch (parseError) {
+        console.error('Challenge parsing failed:', parseError);
+        return;
+      }
+
+      console.log('[4/5] Creating challenges:', parsedChallenges);
+      await createChallenges(newNote.id, parsedChallenges);
+
+      console.log('Updating note status...');
+      const { error: updateError } = await supabase
+        .from('notes')
+        .update({ challenges_generated: true })
+        .eq('id', newNote.id);
+
+      if (updateError) throw updateError;
+
+      console.log('[5/5] Navigating to challenges...');
+      const navigationPath = `/challenges/${newNote.id}`;
+      console.log('Navigation path:', navigationPath);
+
+      if (router.canGoBack()) {
+        router.push(navigationPath);
+      } else {
+        console.error('Navigation error: Invalid path or missing route');
+        return;
+      }
+
+    } catch (error) {
+      console.error('Full error details:', error);
+      alert(`Operation failed: ${error.message}`);
     } finally {
       setIsSubmitting(false);
+      setIsGenerating(false);
+      console.log('Submission process completed');
     }
-  };
-
+  }
+  
   /** Modal open/close */
   const openModal = () => setModalVisible(true);
   const closeModal = () => setModalVisible(false);
@@ -388,5 +436,27 @@ const styles = StyleSheet.create({
   templateTitle: {
     fontSize: 16,
     color: '#333',
+  },
+  challengeCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  challengeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+    color: '#1a1a1a',
+  },
+  challengeDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  challengePoints: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '500',
   },
 });

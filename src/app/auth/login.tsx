@@ -9,10 +9,12 @@ import {
   Alert, 
   ScrollView, 
   Keyboard,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Platform,
 } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import { supabase, auth } from '../../lib/supabase';
 import Colors from '../../constants/Colors';
+import Icon from 'react-native-vector-icons/FontAwesome'; // Import FontAwesome for Google icon
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -20,16 +22,15 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Handle email/password login
   const handleLogin = async () => {
     setError('');
     if (!email || !password) {
       setError('Please fill in all fields');
       return;
     }
-
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-
     if (error) {
       Alert.alert('Login Error', error.message);
       setError(error.message);
@@ -37,6 +38,27 @@ export default function LoginScreen() {
       router.replace('/(tabs)/notes');
     }
     setLoading(false);
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      const redirectTo = Platform.select({
+        web: 'http://localhost:19006/auth/callback', // For web
+        default: 'myapp://auth/callback', // For mobile
+      });
+  
+      const { error } = await auth.signInWithGoogle(); // Use the centralized function
+  
+      if (error) {
+        Alert.alert('Google Login Error', error.message);
+      }
+    } catch (error) {
+      console.error('Error during Google login:', error);
+      Alert.alert('Google Login Error', 'An unexpected error occurred.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -49,6 +71,7 @@ export default function LoginScreen() {
         <View style={styles.innerContainer}>
           <Text style={styles.title}>Welcome Back</Text>
           
+          {/* Email Input */}
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -58,7 +81,7 @@ export default function LoginScreen() {
             keyboardType="email-address"
             placeholderTextColor={Colors.light.textSecondary}
           />
-
+          {/* Password Input */}
           <TextInput
             style={styles.input}
             placeholder="Password"
@@ -67,9 +90,10 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             placeholderTextColor={Colors.light.textSecondary}
           />
-
+          {/* Error Message */}
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
+          {/* Sign In Button */}
           <Pressable 
             style={[styles.button, loading && styles.disabled]} 
             onPress={handleLogin}
@@ -80,6 +104,19 @@ export default function LoginScreen() {
             </Text>
           </Pressable>
 
+          {/* Sign In with Google Button */}
+          <Pressable 
+            style={[styles.googleButton, loading && styles.disabled]} 
+            onPress={handleGoogleLogin}
+            disabled={loading}
+          >
+            <Icon name="google" size={20} color="#FFFFFF" style={styles.googleIcon} />
+            <Text style={styles.googleButtonText}>
+              {loading ? 'Signing In with Google...' : 'Sign In with Google'}
+            </Text>
+          </Pressable>
+
+          {/* Sign Up Link */}
           <Link href="/auth/signup" asChild>
             <Pressable style={styles.link}>
               <Text style={styles.linkText}>
@@ -132,6 +169,23 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   buttonText: {
+    color: Colors.light.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DB4437', // Google red color
+    padding: 15,
+    borderRadius: 8,
+    marginVertical: 10,
+  },
+  googleIcon: {
+    marginRight: 10,
+  },
+  googleButtonText: {
     color: Colors.light.text,
     fontSize: 16,
     fontWeight: '600',

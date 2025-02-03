@@ -1,14 +1,7 @@
 import 'react-native-url-polyfill/auto';
 import * as SecureStore from 'expo-secure-store';
-import { createClient, OAuthResponse } from '@supabase/supabase-js';
-import { 
-  AuthError, 
-  Session, 
-  User, 
-  UserResponse,
-  AuthTokenResponse,
-  AuthResponse 
-} from '@supabase/supabase-js';
+import { createClient, UserResponse } from '@supabase/supabase-js';
+import { AuthError, Session, User, AuthTokenResponse } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
 
 const ExpoSecureStoreAdapter = {
@@ -29,45 +22,43 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+// Unified response type for authentication methods
+type AuthResponse = AuthTokenResponse | AuthOAuthResponse;
+
 // Authentication API with proper typing
 export const auth = {
-  // Email/Password Authentication
   async signInWithEmail(email: string, password: string): Promise<AuthTokenResponse> {
-    return supabase.auth.signInWithPassword({ email, password });
+    return await supabase.auth.signInWithPassword({ email, password });
   },
 
   async signUpWithEmail(email: string, password: string): Promise<AuthResponse> {
-    return supabase.auth.signUp({ email, password });
+    return await supabase.auth.signUp({ email, password });
   },
 
-  // Session Management
   async getSession(): Promise<Session | null> {
     const { data: { session } } = await supabase.auth.getSession();
     return session;
   },
 
   async signOut(): Promise<{ error: AuthError | null }> {
-    return supabase.auth.signOut();
+    return await supabase.auth.signOut();
   },
 
-  // Password Reset
   async resetPassword(email: string): Promise<{ error: AuthError | null }> {
-    return supabase.auth.resetPasswordForEmail(email);
+    return await supabase.auth.resetPasswordForEmail(email);
   },
 
   async updatePassword(newPassword: string): Promise<UserResponse> {
-    return supabase.auth.updateUser({ password: newPassword });
+    return await supabase.auth.updateUser({ password: newPassword });
   },
 
-  // Social Auth
-  async signInWithGoogle(): Promise<OAuthResponse> {
-    return supabase.auth.signInWithOAuth({
+  async signInWithGoogle(): Promise<AuthOAuthResponse> {
+    return await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: 'your-app-scheme://auth/callback' },
     });
   },
 
-  // Auth State Listener
   onAuthStateChange(callback: (event: string, session: Session | null) => void) {
     return supabase.auth.onAuthStateChange((event, session) => {
       callback(event, session);
@@ -78,12 +69,16 @@ export const auth = {
 // Custom Hook for Auth State Management
 export const useAuth = () => {
   const [session, setSession] = useState<Session | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setSession(data.session);
+        setUserId(data.session.user.id); // Store user ID in state
+      }
       setLoading(false);
     };
 
@@ -92,6 +87,7 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
+        setUserId(session?.user?.id || null); // Update user ID when auth state changes
         setLoading(false);
       }
     );
@@ -99,5 +95,5 @@ export const useAuth = () => {
     return () => subscription?.unsubscribe();
   }, []);
 
-  return { session, loading };
+  return { session, userId, loading };
 };
