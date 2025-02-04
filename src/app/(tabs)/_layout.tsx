@@ -53,6 +53,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}
       />
+      {/* New Profile Tab */}
+      <Tabs.Screen
+        name="allChallenges"
+        options={{
+          title: 'Challenges',
+          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

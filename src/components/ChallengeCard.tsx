@@ -1,54 +1,63 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 
 interface ChallengeCardProps {
+  id: string;
+  noteId: string;
   title: string;
   description: string;
   points: number;
   completed: boolean;
 }
 
-export default function ChallengeCard({ title, description, points, completed }: ChallengeCardProps) {
-  console.log('Rendering ChallengeCard with:', { title, points, completed });
+export default function ChallengeCard({ id, noteId, title, description, points, completed }: ChallengeCardProps) {
+  const router = useRouter();
+
+  console.log('Rendering ChallengeCard with:', { id, noteId, title, points, completed });
 
   const getDifficultyColor = () => {
-    console.log(`Calculating difficulty for points: ${points}`);
-    
-    if (points <= 25) {
-      console.log('Easy difficulty selected');
-      return { gradient: ['#D4EDDA', '#A9DFBF'], border: '#2ecc71' };
-    }
-    if (points <= 35) {
-      console.log('Medium difficulty selected');
-      return { gradient: ['#FDEBD0', '#FAD7A0'], border: '#f39c12' };
-    }
-    console.log('Hard difficulty selected');
+    if (points <= 25) return { gradient: ['#D4EDDA', '#A9DFBF'], border: '#2ecc71' };
+    if (points <= 35) return { gradient: ['#FDEBD0', '#FAD7A0'], border: '#f39c12' };
     return { gradient: ['#FADBD8', '#F5B7B1'], border: '#e74c3c' };
   };
 
   const colors = getDifficultyColor();
-  console.log('Selected colors:', colors);
+
+  const handlePress = () => {
+    console.log(`Pressed challenge with ID: ${id}, Note ID: ${noteId}`);
+    router.push(`/challenges/${noteId}/${id}`); // Navigate correctly
+  };
 
   return (
-    <View style={[styles.cardContainer, { borderColor: colors.border }]}>
-      <LinearGradient
-        colors={colors.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.card}
-      >
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
-        
-        <View style={styles.footer}>
-          <Text style={styles.points}>{points} Points</Text>
-          <Text style={[styles.status, completed ? styles.completed : styles.pending]}>
-            {completed ? 'Completed' : 'Pending'}
-          </Text>
+    <Pressable onPress={handlePress}>
+      {({ pressed }) => (
+        <View
+          style={[
+            styles.cardContainer,
+            { borderColor: colors.border, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <LinearGradient
+            colors={colors.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.card}
+          >
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.description}>{description}</Text>
+            
+            <View style={styles.footer}>
+              <Text style={styles.points}>{points} Points</Text>
+              <Text style={[styles.status, completed ? styles.completed : styles.pending]}>
+                {completed ? 'Completed' : 'Pending'}
+              </Text>
+            </View>
+          </LinearGradient>
         </View>
-      </LinearGradient>
-    </View>
+      )}
+    </Pressable>
   );
 }
 

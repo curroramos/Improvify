@@ -33,7 +33,6 @@ export default function ChallengesScreen() {
         }
       } catch (error) {
         console.error('Error fetching challenges:', error);
-        setErrorMessage(`Error retrieving challenges: ${error.message}`);
       } finally {
         setLoading(false);
       }
@@ -54,13 +53,15 @@ export default function ChallengesScreen() {
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Challenges for Note ID: {noteId}</Text>
       {challenges.map((item) => (
-        <ChallengeCard
-          key={item.id}
-          title={item.title}
-          description={item.description}
-          points={item.points}
-          completed={item.completed}
-        />
+      <ChallengeCard
+        key={item.id}
+        id={item.id}
+        noteId={item.note_id}  // Ensure noteId is passed
+        title={item.title}
+        description={item.description}
+        points={item.points}
+        completed={item.completed}
+      />
       ))}
     </ScrollView>
   );

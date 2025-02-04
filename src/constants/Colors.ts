@@ -1,59 +1,3 @@
-// constants/Colors.ts
-
-export interface ColorScheme {
-  primary: {
-    main: string;
-    light: string;
-    dark: string;
-  };
-  secondary: {
-    main: string;
-    light: string;
-    dark: string;
-  };
-  text: string;
-  textSecondary: string;  // Add this
-  background: string;
-  card: string;
-  border: string;
-  success: {
-    main: string;
-    light: string;
-    dark: string;
-  };
-  danger: {
-    main: string;
-    light: string;
-    dark: string;
-  };
-  warning: {
-    main: string;
-    light: string;
-    dark: string;
-  };
-  info: {
-    main: string;
-    light: string;
-    dark: string;
-  };
-  challenges: {
-    mental: string;
-    physical: string;
-    social: string;
-    emotional: string;
-  };
-  tabBar: {
-    background: string;
-    icon: string;
-    selected: string;
-  };
-  input: {
-    background: string;
-    text: string;
-    placeholder: string;
-  };
-}
-
 const Colors = {
   light: {
     primary: {
@@ -107,6 +51,10 @@ const Colors = {
       text: '#1A1A1A',
       placeholder: '#8E8E93',
     },
+    gradient: {
+      primary: ['#007AFF', '#0051B3'], // Example primary gradient
+      secondary: ['#FF9500', '#CC7700'], // Example secondary gradient
+    },
   },
   dark: {
     primary: {
@@ -159,6 +107,10 @@ const Colors = {
       background: '#2C2C2E',
       text: '#FFFFFF',
       placeholder: '#8E8E93',
+    },
+    gradient: {
+      primary: ['#0A84FF', '#0063CC'], // Example primary gradient
+      secondary: ['#FF9F0A', '#D67F00'], // Example secondary gradient
     },
   },
 } as const;
