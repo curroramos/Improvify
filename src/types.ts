@@ -1,24 +1,29 @@
-// types.ts
 export type User = {
-  id: string;
-  email: string;
-  username?: string;
-  current_streak: number;
+  id: string; // UUID
+  level: number;
   total_points: number;
-  created_at: string;
-  updated_at: string;
-  last_reflection_date?: string;
+  created_at: string; // ISO timestamp
+  last_updated: string; // ISO timestamp
+};
+
+export type UserPointsHistory = {
+  id: string; // UUID
+  user_id: string; // UUID (foreign key referencing users)
+  points_added: number;
+  date: string; // YYYY-MM-DD format
+  created_at: string; // ISO timestamp
 };
 
 export type Challenge = {
-  id: string;
-  note_id: string;
-  user_id: string;
-  challenge_text: string;
-  points_value: number;
+  id: string; // UUID
+  note_id: string; // UUID (foreign key referencing notes)
+  user_id: string; // UUID (foreign key referencing users)
+  title: string;
+  description: string;
+  points: number;
   completed: boolean;
-  created_at: string;
-  due_date?: string;
+  created_at: string; // ISO timestamp
+  due_date?: string | null; // ISO timestamp (optional)
 };
 
 export type Note = {

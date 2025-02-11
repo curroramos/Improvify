@@ -23,27 +23,50 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     setError('');
+    
     if (!email || !password || !confirmPassword) {
       setError('Please fill in all fields');
       return;
     }
+    
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-
+  
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
-
+  
+    // Sign up user
+    const { data, error } = await supabase.auth.signUp({ email, password });
+  
     if (error) {
       Alert.alert('Signup Error', error.message);
       setError(error.message);
-    } else {
-      Alert.alert('Check your email', 'A confirmation link has been sent!');
-      router.replace('/auth/login');
+      setLoading(false);
+      return;
     }
+  
+    console.log("User signed up:", data);
+  
+    // Insert the user into the 'users' table
+    if (data.user) {
+      const { error: userError } = await supabase
+        .from('users')
+        .insert([{ id: data.user.id, created_at: new Date().toISOString() }]);
+  
+      if (userError) {
+        console.error("Error inserting user into users table:", userError.message);
+      } else {
+        console.log("User successfully inserted into users table");
+      }
+    }
+  
+    Alert.alert('Check your email', 'A confirmation link has been sent!');
+    router.replace('/auth/login');
+  
     setLoading(false);
   };
+  
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

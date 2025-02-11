@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, Pressable } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { Challenge } from '@/lib/api/challenges';
+import { completeChallenge } from '@/lib/api/challenges';
+import { useUser } from '@/hooks/useUser';
+import { Challenge } from '@/types';
 
 export default function ChallengeDetailsScreen() {
   const { challengeId } = useLocalSearchParams<{ challengeId: string }>();
+  const { user } = useUser(); // Get logged-in user
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
+  const [completing, setCompleting] = useState(false); // Track completion process
 
   useEffect(() => {
     const fetchChallenge = async () => {
@@ -32,6 +36,24 @@ export default function ChallengeDetailsScreen() {
     fetchChallenge();
   }, [challengeId]);
 
+  const handleCompleteChallenge = async () => {
+    if (!challenge || !user) return;
+
+    try {
+      setCompleting(true);
+      const { challenge: updatedChallenge, user: updatedUser } = await completeChallenge(challenge.id, user.id);
+
+      if (updatedChallenge) {
+        setChallenge(updatedChallenge[0]); // Update UI with new challenge status
+      }
+      console.log("User points and level updated:", updatedUser);
+    } catch (error) {
+      console.error('Error completing challenge:', error);
+    } finally {
+      setCompleting(false);
+    }
+  };
+
   if (loading) {
     return <ActivityIndicator size="large" style={{ flex: 1, justifyContent: 'center' }} />;
   }
@@ -45,33 +67,23 @@ export default function ChallengeDetailsScreen() {
       <Text style={{ fontSize: 20, fontWeight: 'bold' }}>{challenge.title}</Text>
       <Text>{challenge.description}</Text>
       <Text>Points: {challenge.points}</Text>
-      <Text>Status: {challenge.completed ? '✅ Completed' : '❌ Pending'}</Text>
+      <Text>Status: {challenge.completed ? 'Completed' : 'Pending'}</Text>
       {challenge.created_at && <Text>Created: {new Date(challenge.created_at).toDateString()}</Text>}
 
-      {/* Mark Challenge as Completed */}
       {!challenge.completed && (
         <Pressable
-          onPress={async () => {
-            try {
-              const { error } = await supabase
-                .from('challenges')
-                .update({ completed: true })
-                .eq('id', challengeId);
-
-              if (error) throw error;
-              setChallenge({ ...challenge, completed: true });
-            } catch (error) {
-              console.error('Error updating challenge:', error);
-            }
-          }}
+          onPress={handleCompleteChallenge}
+          disabled={completing}
           style={{
             marginTop: 20,
             padding: 12,
-            backgroundColor: '#007AFF',
+            backgroundColor: completing ? '#ccc' : '#007AFF',
             borderRadius: 8,
           }}
         >
-          <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>Mark as Completed</Text>
+          <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>
+            {completing ? 'Completing...' : 'Mark as Completed'}
+          </Text>
         </Pressable>
       )}
     </View>

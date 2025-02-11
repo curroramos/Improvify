@@ -92,6 +92,7 @@ export default function ChallengesScreen() {
         challenges.map((challenge) => (
         <ChallengeCard
           key={challenge.id}  // This is fine for React but doesn't pass `id` as a prop
+          noteId={challenge.note_id}
           id={challenge.id}   // <-- Ensure `id` is passed as a prop
           title={challenge.title}
           description={challenge.description}

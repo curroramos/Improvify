@@ -117,7 +117,7 @@ export default function CreateNoteScreen() {
       }
 
       console.log('[4/5] Creating challenges:', parsedChallenges);
-      await createChallenges(newNote.id, parsedChallenges);
+      await createChallenges(newNote.id, userId, parsedChallenges);
 
       console.log('Updating note status...');
       const { error: updateError } = await supabase

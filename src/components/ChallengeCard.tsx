@@ -27,7 +27,7 @@ export default function ChallengeCard({ id, noteId, title, description, points, 
 
   const handlePress = () => {
     console.log(`Pressed challenge with ID: ${id}, Note ID: ${noteId}`);
-    router.push(`/challenges/${noteId}/${id}`); // Navigate correctly
+    router.push(`/challenges/${noteId}/${id}`);
   };
 
   return (
