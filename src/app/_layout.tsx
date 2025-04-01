@@ -25,7 +25,11 @@ export default function RootLayout() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <Stack>
+      <Stack
+        screenOptions={{
+          headerShown: false, // ✅ hide header globally by default
+        }}
+      >
         <Stack.Screen
           name="(tabs)"
           options={{ headerShown: false }}

@@ -1,17 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { View, Text, ActivityIndicator, Pressable } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { completeChallenge } from '@/lib/api/challenges';
 import { useUser } from '@/hooks/useUser';
 import { Challenge } from '@/types';
 
 export default function ChallengeDetailsScreen() {
-  const { challengeId } = useLocalSearchParams<{ challengeId: string }>();
+  const { noteId, challengeId } = useLocalSearchParams<{ noteId: string; challengeId: string }>();
+  const navigation = useNavigation();
   const { user } = useUser(); // Get logged-in user
+
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false); // Track completion process
+
+  // Override header back button
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: 'Challenge Detail',
+    });
+  }, [navigation]);
+  
 
   useEffect(() => {
     const fetchChallenge = async () => {

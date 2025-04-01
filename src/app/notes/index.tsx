@@ -11,9 +11,9 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import * as Haptics from 'expo-haptics'; // For haptic feedback on interactions
-import { fetchNotes, deleteNote } from '../../../lib/api/notes';
-import { Note } from '../../../types';
-import Colors from '../../../constants/Colors';
+import { fetchNotes, deleteNote } from '../../lib/api/notes';
+import { Note } from '../../types';
+import Colors from '../../constants/Colors';
 import NoteCard from '@/components/NoteCard';
 import EmptyState from '@/components/EmptyState';
 

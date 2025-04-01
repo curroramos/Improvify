@@ -11,8 +11,8 @@ import {
 import { useLocalSearchParams, Link, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import RenderHtml from 'react-native-render-html'; // <-- Import here
-import { getNoteById } from '../../../lib/api/notes';
-import { Note } from '../../../types'; // Or your actual path to types.ts
+import { getNoteById } from '../../lib/api/notes';
+import { Note } from '../../types'; // Or your actual path to types.ts
 
 export default function NoteDetailScreen() {
   const { noteId } = useLocalSearchParams<{ noteId: string }>();

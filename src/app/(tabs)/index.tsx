@@ -120,21 +120,6 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
-
-      {/* Floating Action Button */}
-      <Link href="/notes/create" asChild>
-        <Pressable style={styles.fab}>
-          <LinearGradient
-            colors={[theme.primary.main, theme.primary.dark]}
-            style={styles.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <MaterialIcons name="edit" size={24} color="#fff" />
-            <Text style={styles.fabText}>Today's Reflection</Text>
-          </LinearGradient>
-        </Pressable>
-      </Link>
     </SafeAreaView>
   );
 }
