@@ -35,7 +35,7 @@ export default function LoginScreen() {
       Alert.alert('Login Error', error.message);
       setError(error.message);
     } else {
-      router.replace('/(tabs)/notes');
+      router.push('/(tabs)');
     }
     setLoading(false);
   };
