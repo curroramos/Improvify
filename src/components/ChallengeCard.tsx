@@ -14,9 +14,7 @@ interface ChallengeCardProps {
 
 export default function ChallengeCard({ id, noteId, title, description, points, completed }: ChallengeCardProps) {
   const router = useRouter();
-
-  console.log('Rendering ChallengeCard with:', { id, noteId, title, points, completed });
-
+  
   const getDifficultyColor = () => {
     if (points <= 25) return { gradient: ['#D4EDDA', '#A9DFBF'], border: '#2ecc71' };
     if (points <= 35) return { gradient: ['#FDEBD0', '#FAD7A0'], border: '#f39c12' };
@@ -26,12 +24,10 @@ export default function ChallengeCard({ id, noteId, title, description, points, 
   const colors = getDifficultyColor();
 
   const handlePress = () => {
-    console.log(`Pressed challenge with ID: ${id}, Note ID: ${noteId}`);
-    console.log('🔍 Navigating to challenge:', { noteId, challengeId: id });
     router.push({
       pathname: '/challenges/[noteId]/[challengeId]',
       params: { noteId, challengeId: id },
-    });    
+    });
   };
 
   return (

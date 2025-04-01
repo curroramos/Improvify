@@ -9,9 +9,7 @@ import {
   useColorScheme,
   ActivityIndicator,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { QUOTES } from '../../constants/quotes';
 import Colors from '../../constants/Colors';
 import { getChallengesByNoteId, Challenge } from '@/lib/api/challenges';

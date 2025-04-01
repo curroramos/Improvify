@@ -109,8 +109,8 @@ const Colors = {
       placeholder: '#8E8E93',
     },
     gradient: {
-      primary: ['#0A84FF', '#0063CC'], // Example primary gradient
-      secondary: ['#FF9F0A', '#D67F00'], // Example secondary gradient
+      primary: ['#0A84FF', '#0063CC'],
+      secondary: ['#FF9F0A', '#D67F00'],
     },
   },
 } as const;
