@@ -1,46 +1,45 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 import { Note } from '../types';
 
 interface NoteCardProps {
   note: Note;
-  onDelete: (id: string) => void;
   backgroundColor: string;
   textColor: string;
   textSecondaryColor: string;
-  dangerColor: string;
+  onPress?: () => void;
 }
 
 const NoteCard = ({
   note,
-  onDelete,
   backgroundColor,
   textColor,
   textSecondaryColor,
-  dangerColor,
+  onPress,
 }: NoteCardProps) => {
   return (
     <Pressable
+      onPress={onPress}
       style={({ pressed }) => [
         styles.card,
         { backgroundColor },
         pressed && styles.pressed,
       ]}
     >
-      <Text style={[styles.title, { color: textColor }]}>{note.title}</Text>
-      
+      <View style={styles.contentWrapper}>
+        <Text style={[styles.title, { color: textColor }]} numberOfLines={1}>
+          {note.title}
+        </Text>
+
+        <Text style={[styles.content, { color: textSecondaryColor }]} numberOfLines={3}>
+          {note.content}
+        </Text>
+      </View>
+
       <View style={styles.footer}>
         <Text style={[styles.date, { color: textSecondaryColor }]}>
           {new Date(note.created_at).toLocaleDateString()}
         </Text>
-        
-        <Pressable
-          onPress={() => onDelete(note.id)}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-        >
-          <MaterialIcons name="delete" size={20} color={dangerColor} />
-        </Pressable>
       </View>
     </Pressable>
   );
@@ -48,30 +47,41 @@ const NoteCard = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 14,
+    backgroundColor: '#fff',
+    borderColor: '#eee',
+    borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
     elevation: 2,
   },
   pressed: {
-    opacity: 0.9,
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }],
+  },
+  contentWrapper: {
+    marginBottom: 10,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  content: {
+    fontSize: 15,
+    lineHeight: 20,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
   },
   date: {
     fontSize: 12,
+    fontStyle: 'italic',
   },
 });
 

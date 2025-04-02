@@ -1,39 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Image,
   TextInput,
   FlatList,
   Pressable,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '@/hooks/useUser';
-import NotePreview from '@/components/NotePreview';
+import { searchNotesByUser } from '@/lib/api/notes'; // The search function that uses Supabase
+import NoteCard from '@/components/NoteCard';
 import UserLevelBar from '@/components/UserLevelBar';
-
-const mockNotes = [
-  {
-    id: '1',
-    date: '2025-04-01',
-    note: 'Today I finished a big challenge and it felt great...',
-    challenges: 3,
-    total: 3,
-  },
-  {
-    id: '2',
-    date: '2025-03-31',
-    note: 'Worked through some bugs and completed everything',
-    challenges: 3,
-    total: 3,
-  },
-];
+import { Note } from '@/types';
 
 export default function ProfileScreen() {
   const { user } = useUser();
   const [tab, setTab] = useState<'progress' | 'reflections'>('progress');
   const [search, setSearch] = useState('');
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Debounced effect: waits 300ms after the last keystroke
+  useEffect(() => {
+    // If there's no user, do nothing
+    if (!user?.id) return;
+
+    // Before we do anything, set loading to true so we show a spinner if needed
+    setLoading(true);
+
+    // Create a timer that will call our API after 300 ms
+    const timer = setTimeout(async () => {
+      try {
+        const fetchedNotes = await searchNotesByUser(user.id, search);
+        setNotes(fetchedNotes);
+      } catch (error) {
+        console.error('Failed to fetch user notes:', error);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+
+    // Cleanup: if the user types again before 300 ms, clearTimeout prevents the old request
+    return () => clearTimeout(timer);
+  }, [user?.id, search]);
 
   return (
     <View style={styles.container}>
@@ -65,6 +77,7 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
+      {/* Conditionally render based on the selected tab */}
       {tab === 'progress' ? (
         <>
           <UserLevelBar level={user?.level ?? 1} points={user?.points ?? 0} />
@@ -72,6 +85,7 @@ export default function ProfileScreen() {
         </>
       ) : (
         <>
+          {/* Search bar */}
           <TextInput
             value={search}
             onChangeText={setSearch}
@@ -79,19 +93,29 @@ export default function ProfileScreen() {
             style={styles.searchBar}
             placeholderTextColor="#999"
           />
-          <FlatList
-            data={mockNotes}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingBottom: 32 }}
-            renderItem={({ item }) => (
-              <NotePreview
-                date={item.date}
-                note={item.note}
-                challenges={item.challenges}
-                total={item.total}
-              />
-            )}
-          />
+
+          {/* If still loading, show spinner */}
+          {loading ? (
+            <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 24 }} />
+          ) : (
+            <FlatList
+              data={notes}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingBottom: 32 }}
+              renderItem={({ item }) => (
+                <NoteCard
+                  note={item}
+                  backgroundColor="#fff"
+                  textColor="#333"
+                  textSecondaryColor="#666"
+                  onPress={() => console.log('Navigate to note detail:', item.id)}
+                />
+              )}
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>No notes found.</Text>
+              }
+            />
+          )}
         </>
       )}
     </View>
@@ -159,5 +183,11 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginTop: 8,
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 24,
+    color: '#999',
+    fontSize: 16,
   },
 });

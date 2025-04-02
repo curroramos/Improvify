@@ -16,9 +16,13 @@ export default function ChallengeCard({ id, noteId, title, description, points, 
   const router = useRouter();
   
   const getDifficultyColor = () => {
-    if (points <= 25) return { gradient: ['#D4EDDA', '#A9DFBF'], border: '#2ecc71' };
-    if (points <= 35) return { gradient: ['#FDEBD0', '#FAD7A0'], border: '#f39c12' };
-    return { gradient: ['#FADBD8', '#F5B7B1'], border: '#e74c3c' };
+    if (points <= 25) {
+      return { gradient: ['#D4EDDA', '#A9DFBF'] as [string, string], border: '#2ecc71' };
+    }
+    if (points <= 35) {
+      return { gradient: ['#FDEBD0', '#FAD7A0'] as [string, string], border: '#f39c12' };
+    }
+    return { gradient: ['#FADBD8', '#F5B7B1'] as [string, string], border: '#e74c3c' };
   };
 
   const colors = getDifficultyColor();

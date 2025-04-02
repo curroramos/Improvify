@@ -12,6 +12,54 @@ export const fetchNotes = async (): Promise<Note[]> => {
   return (data ?? []).filter((note): note is Note => note !== null);
 };
 
+// Fetch notes by user
+export const fetchNotesByUser = async (userId: string): Promise<Note[]> => {
+  const { data, error } = await supabase
+    .from('notes')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).filter((note): note is Note => note !== null);
+};
+
+export const searchNotesByUser = async (
+  userId: string,
+  query: string
+): Promise<Note[]> => {
+  // If the search query is empty, you might just fetch all notes by user
+  if (!query) {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []).filter((note): note is Note => note !== null);
+  }
+
+  // Otherwise, filter notes by partial matches in title OR content
+  const { data, error } = await supabase
+    .from('notes')
+    .select('*')
+    .eq('user_id', userId)
+    .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).filter((note): note is Note => note !== null);
+};
 
 // Create a new note
 export const createNote = async (
