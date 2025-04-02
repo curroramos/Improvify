@@ -1,33 +1,31 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { View, Text, ActivityIndicator, Pressable } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { completeChallenge } from '@/lib/api/challenges';
 import { useUser } from '@/hooks/useUser';
 import { Challenge } from '@/types';
+import ChallengeDetail from '@/components/ChallengeDetail';
 
 export default function ChallengeDetailsScreen() {
-  const { noteId, challengeId } = useLocalSearchParams<{ noteId: string; challengeId: string }>();
+  const { challengeId } = useLocalSearchParams<{ challengeId: string }>();
   const navigation = useNavigation();
-  const { user } = useUser(); // Get logged-in user
+  const { user } = useUser();
 
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
-  const [completing, setCompleting] = useState(false); // Track completion process
+  const [completing, setCompleting] = useState(false);
 
-  // Override header back button
   useLayoutEffect(() => {
-    navigation.setOptions({
-      title: 'Challenge Detail',
-    });
+    navigation.setOptions({ title: 'Challenge Detail' });
   }, [navigation]);
-  
 
   useEffect(() => {
+    if (!challengeId) return;
+
     const fetchChallenge = async () => {
-      if (!challengeId) return;
+      setLoading(true);
       try {
-        console.log(`Fetching challenge with ID: ${challengeId}`);
         const { data, error } = await supabase
           .from('challenges')
           .select('*')
@@ -36,8 +34,8 @@ export default function ChallengeDetailsScreen() {
 
         if (error) throw error;
         setChallenge(data);
-      } catch (error) {
-        console.error('Error fetching challenge:', error);
+      } catch (err) {
+        console.error('Failed to fetch challenge:', err);
       } finally {
         setLoading(false);
       }
@@ -46,56 +44,42 @@ export default function ChallengeDetailsScreen() {
     fetchChallenge();
   }, [challengeId]);
 
-  const handleCompleteChallenge = async () => {
+  const handleComplete = async () => {
     if (!challenge || !user) return;
 
+    setCompleting(true);
     try {
-      setCompleting(true);
-      const { challenge: updatedChallenge, user: updatedUser } = await completeChallenge(challenge.id, user.id);
-
-      if (updatedChallenge) {
-        setChallenge(updatedChallenge[0]); // Update UI with new challenge status
-      }
-      console.log("User points and level updated:", updatedUser);
-    } catch (error) {
-      console.error('Error completing challenge:', error);
+      const { challenge: updated, user: updatedUser } = await completeChallenge(challenge.id, user.id);
+      if (updated?.[0]) setChallenge(updated[0]);
+      console.log('User updated:', updatedUser);
+    } catch (err) {
+      console.error('Failed to complete challenge:', err);
     } finally {
       setCompleting(false);
     }
   };
 
   if (loading) {
-    return <ActivityIndicator size="large" style={{ flex: 1, justifyContent: 'center' }} />;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
 
   if (!challenge) {
-    return <Text style={{ textAlign: 'center', marginTop: 20 }}>Challenge not found.</Text>;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Challenge not found.</Text>
+      </View>
+    );
   }
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <Text style={{ fontSize: 20, fontWeight: 'bold' }}>{challenge.title}</Text>
-      <Text>{challenge.description}</Text>
-      <Text>Points: {challenge.points}</Text>
-      <Text>Status: {challenge.completed ? 'Completed' : 'Pending'}</Text>
-      {challenge.created_at && <Text>Created: {new Date(challenge.created_at).toDateString()}</Text>}
-
-      {!challenge.completed && (
-        <Pressable
-          onPress={handleCompleteChallenge}
-          disabled={completing}
-          style={{
-            marginTop: 20,
-            padding: 12,
-            backgroundColor: completing ? '#ccc' : '#007AFF',
-            borderRadius: 8,
-          }}
-        >
-          <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>
-            {completing ? 'Completing...' : 'Mark as Completed'}
-          </Text>
-        </Pressable>
-      )}
-    </View>
+    <ChallengeDetail
+      challenge={challenge}
+      completing={completing}
+      onComplete={handleComplete}
+    />
   );
 }
