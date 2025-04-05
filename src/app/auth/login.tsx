@@ -35,6 +35,7 @@ export default function LoginScreen() {
       Alert.alert('Login Error', error.message);
       setError(error.message);
     } else {
+      console.log('Login successful, redirecting to tabs...');
       router.push('/(tabs)');
     }
     setLoading(false);

@@ -12,22 +12,28 @@ import {
 import { useRouter } from 'expo-router';
 import { QUOTES } from '../../constants/quotes';
 import Colors from '../../constants/Colors';
-import { getChallengesByNoteId, Challenge } from '@/lib/api/challenges';
-import { fetchNotes } from '@/lib/api/notes';
 import ChallengeCard from '@/components/ChallengeCard';
 import { useFocusEffect } from '@react-navigation/native';
+import { useChallengeStore } from '@/lib/store/useChallengeStore';
 
 export default function HomeScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() as 'light' | 'dark';
   const theme = Colors[colorScheme] || Colors.light;
 
+  // Local state only for quotes/date (not challenges)
   const [currentQuote, setCurrentQuote] = useState(QUOTES[0]);
   const [currentDate, setCurrentDate] = useState('');
-  const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
 
+  // Zustand store state + actions
+  const {
+    challenges,
+    loading,
+    error,
+    fetchChallenges,
+  } = useChallengeStore();
+
+  // Set date + random quote on mount
   useEffect(() => {
     const today = new Date();
     setCurrentDate(
@@ -46,36 +52,14 @@ export default function HomeScreen() {
     setCurrentQuote(QUOTES[randomIndex]);
   };
 
-  const fetchChallenges = async () => {
-    try {
-      setLoading(true);
-      setErrorMessage('');
-
-      // Get the latest note
-      const notes = await fetchNotes();
-      if (notes.length === 0) {
-        setChallenges([]);
-        setLoading(false);
-        return;
-      }
-
-      const latestNoteId = notes[0].id;
-
-      // Fetch challenges for the latest note
-      const fetchedChallenges = await getChallengesByNoteId(latestNoteId);
-      setChallenges(fetchedChallenges);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to fetch challenges.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Re-fetch challenges every time the screen is focused
+  // Fetch when screen focuses, but only if needed
+  // (e.g., if challenges array is empty or you truly want a refetch each time)
   useFocusEffect(
     useCallback(() => {
-      fetchChallenges();
-    }, [])
+      if (challenges.length === 0) {
+        fetchChallenges();
+      }
+    }, [challenges.length, fetchChallenges])
   );
 
   return (
@@ -99,10 +83,12 @@ export default function HomeScreen() {
 
           {loading ? (
             <ActivityIndicator size="large" color={theme.primary.main} />
-          ) : errorMessage ? (
-            <Text style={[styles.errorText, { color: theme.primary.light }]}>{errorMessage}</Text>
+          ) : error ? (
+            <Text style={[styles.errorText, { color: theme.primary.light }]}>{error}</Text>
           ) : challenges.length === 0 ? (
-            <Text style={[styles.noChallengesText, { color: theme.textSecondary }]}>No active challenges</Text>
+            <Text style={[styles.noChallengesText, { color: theme.textSecondary }]}>
+              No active challenges
+            </Text>
           ) : (
             challenges.map((challenge) => (
               <ChallengeCard
@@ -167,29 +153,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 12,
   },
-  challengeCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  challengeTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  challengeDescription: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  challengePoints: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
   noChallengesText: {
     fontSize: 16,
     fontStyle: 'italic',
@@ -197,29 +160,5 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 32,
-    right: 24,
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  gradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-  },
-  fabText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 12,
   },
 });

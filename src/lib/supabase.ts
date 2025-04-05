@@ -28,7 +28,18 @@ type AuthResponse = AuthTokenResponse | AuthOAuthResponse;
 // Authentication API with proper typing
 export const auth = {
   async signInWithEmail(email: string, password: string): Promise<AuthTokenResponse> {
-    return await supabase.auth.signInWithPassword({ email, password });
+    console.log('[auth] SignInWithEmail - starting');
+    const response = await supabase.auth.signInWithPassword({ email, password });
+    console.log('[auth] SignInWithEmail - response:', response);
+
+    // You can check for error or session here:
+    if (response.error) {
+      console.error('[auth] SignInWithEmail - error:', response.error);
+    } else {
+      console.log('[auth] SignInWithEmail - success, session:', response.data.session);
+    }
+
+    return response;
   },
 
   async signUpWithEmail(email: string, password: string): Promise<AuthResponse> {
@@ -95,5 +106,5 @@ export const useAuth = () => {
     return () => subscription?.unsubscribe();
   }, []);
 
-  return { session, userId, loading };
+  return { session, userId, loading, signOut: auth.signOut };
 };

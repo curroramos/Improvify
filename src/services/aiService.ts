@@ -1,10 +1,9 @@
-// services/aiService.ts
 import { supabase } from '../lib/supabase';
 import { OpenAI } from 'openai';
 
 const client = new OpenAI({
-  baseURL: 'https://router.huggingface.co/sambanova', // or your custom route
-  apiKey: 'YOUR_HF_TOKEN' // ensure you supply the correct token
+	baseURL: 'https://router.huggingface.co/novita',
+	apiKey: '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'
 });
 
 const validateChallenges = (challenges: any[]) => {
@@ -12,39 +11,40 @@ const validateChallenges = (challenges: any[]) => {
     throw new Error('Invalid challenges format: must contain exactly 3 challenges.');
   }
 
-  challenges.forEach((challenge) => {
+  challenges.forEach((challenge, index) => {
     if (
-      !challenge.title ||
-      !challenge.description ||
+      typeof challenge.title !== 'string' ||
+      typeof challenge.description !== 'string' ||
       typeof challenge.points !== 'number'
     ) {
-      throw new Error('Invalid challenge structure: missing title, description, or numeric points.');
+      throw new Error(`Invalid challenge at index ${index}: missing or incorrect types.`);
     }
   });
 };
 
 export const generateChallenges = async (
   reflection: string,
-  useMock: boolean = false // Option to control usage of the mock
+  useMock = false
 ): Promise<string> => {
-  // The prompt that will be sent to the LLM
   const PROMPT = `
-Analyze this daily reflection and generate 3 measurable challenges for tomorrow.
-Use this JSON format: 
+You are a JSON API. Always return only a valid JSON object, with no preamble, no markdown, no explanations. Do not include \`\`\`json or any other formatting.
+Based on the following reflection, generate 3 measurable challenges for tomorrow. Each challenge must include a title, description, and numeric point value between 10 and 50.
+ONLY respond with a **raw JSON object** in the following format (no extra text):
+
 {
   "challenges": [
     {
       "title": string,
       "description": string,
       "points": number (10-50)
-    }
+    },
+    ...
   ]
 }
 
 Reflection: ${reflection}
-  `;
+`;
 
-  // Hardcoded mock response
   const mockResponse = {
     challenges: [
       {
@@ -66,21 +66,25 @@ Reflection: ${reflection}
   };
 
   if (useMock) {
-    // Return the mocked version if toggled on
-    validateChallenges(mockResponse.challenges);
-    return JSON.stringify(mockResponse);
+    console.log('[AIService] Using mock challenge response');
+    try {
+      validateChallenges(mockResponse.challenges);
+      return JSON.stringify(mockResponse);
+    } catch (err) {
+      console.error('[AIService] Mock validation failed:', err);
+      throw err;
+    }
   }
 
+  console.log('[AIService] Sending prompt to LLM...');
+
   try {
-    // Make a call to the LLM model via streaming or a single completion
-    // For a single completion (non-streaming), you could do:
     const response = await client.chat.completions.create({
-      model: 'DeepSeek-V3-0324', // or whichever model you are using
+      model: 'deepseek/deepseek-v3-0324',
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful assistant that always returns valid JSON. ' + 
-                   'Do not include any additional text outside the JSON.'
+          content: 'You are a helpful assistant that only returns valid JSON with no extra text.'
         },
         {
           role: 'user',
@@ -88,28 +92,38 @@ Reflection: ${reflection}
         }
       ],
       temperature: 0.5,
-      max_tokens: 1000, // adjust as needed
+      max_tokens: 1000,
       top_p: 0.9
     });
 
-    const aiContent = response.choices?.[0].message?.content?.trim();
+    const aiContent = response.choices?.[0]?.message?.content?.trim();
+
     if (!aiContent) {
+      console.error('[AIService] No content received from LLM');
       throw new Error('No content received from LLM.');
     }
 
-    // The returned JSON must match our structure
+    console.log('[AIService] Raw LLM response:', aiContent);
+
     let parsed;
     try {
       parsed = JSON.parse(aiContent);
     } catch (err) {
+      console.error('[AIService] JSON parse failed:', err);
       throw new Error('LLM returned invalid JSON.');
     }
 
-    validateChallenges(parsed.challenges);
+    try {
+      validateChallenges(parsed.challenges);
+    } catch (err) {
+      console.error('[AIService] Challenge validation failed:', err);
+      throw err;
+    }
 
+    console.log('[AIService] Challenges validated successfully');
     return JSON.stringify(parsed);
   } catch (error) {
-    console.error('Validation or LLM call failed:', error);
+    console.error('[AIService] LLM call or validation failed:', error);
     throw new Error('AI generated invalid challenge format or request failed');
   }
 };

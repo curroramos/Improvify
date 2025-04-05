@@ -15,6 +15,7 @@ import { searchNotesByUser } from '@/lib/api/notes'; // The search function that
 import NoteCard from '@/components/NoteCard';
 import UserLevelBar from '@/components/UserLevelBar';
 import { Note } from '@/types';
+import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const { user } = useUser();
@@ -22,6 +23,7 @@ export default function ProfileScreen() {
   const [search, setSearch] = useState('');
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Debounced effect: waits 300ms after the last keystroke
   useEffect(() => {
@@ -56,7 +58,10 @@ export default function ProfileScreen() {
           style={styles.avatar}
         />
         <Text style={styles.name}>{user?.full_name || 'User'}</Text>
-        <Pressable style={styles.settingsBtn}>
+        <Pressable 
+          style={styles.settingsBtn} 
+          onPress={() => router.push('/settings')}  // Add this navigation handler
+        >
           <Ionicons name="settings-outline" size={24} color="#333" />
         </Pressable>
       </View>

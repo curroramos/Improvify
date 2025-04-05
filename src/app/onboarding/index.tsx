@@ -1,17 +1,27 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  Animated,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
-// Slide data
 const slides = [
   {
     id: '1',
     title: 'Welcome to Improvify',
     description: 'Grow daily with reflections, challenges, and measurable progress.',
-    image: 'https://picsum.photos/800/1200?random=1', // Replace w/ real image
+    image: 'https://picsum.photos/800/1200?random=1',
   },
   {
     id: '2',
@@ -30,84 +40,91 @@ const slides = [
 export default function OnboardingScreen() {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
-  const router = useRouter(); // We'll use router to redirect after onboarding
+  const router = useRouter();
 
-  const updateCurrentSlideIndex = (e: any) => {
-    const contentOffsetX = e.nativeEvent.contentOffset.x;
-    const currentIndex = Math.round(contentOffsetX / width);
-    setCurrentSlideIndex(currentIndex);
-  };
+  // Animation values
+  const buttonOpacity = useRef(new Animated.Value(0)).current;
+  const buttonScale = useRef(new Animated.Value(0.8)).current;
 
-  const goToNextSlide = () => {
-    const nextSlideIndex = currentSlideIndex + 1;
-    if (nextSlideIndex < slides.length) {
-      const offset = nextSlideIndex * width;
-      flatListRef.current?.scrollToOffset({ offset });
-      setCurrentSlideIndex(nextSlideIndex);
+  useEffect(() => {
+    if (currentSlideIndex === slides.length - 1) {
+      // Animate button in
+      Animated.parallel([
+        Animated.timing(buttonOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.spring(buttonScale, {
+          toValue: 1,
+          friction: 6,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Reset animation if user goes back
+      buttonOpacity.setValue(0);
+      buttonScale.setValue(0.8);
     }
-  };
+  }, [currentSlideIndex, buttonOpacity, buttonScale]);
 
-  const skipToLastSlide = () => {
-    const lastSlideIndex = slides.length - 1;
-    const offset = lastSlideIndex * width;
-    flatListRef.current?.scrollToOffset({ offset });
-    setCurrentSlideIndex(lastSlideIndex);
+  const updateCurrentSlideIndex = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const contentOffsetX = e.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / width);
+    setCurrentSlideIndex(index);
   };
 
   const handleGetStarted = async () => {
-    // Mark onboarding as complete
-    await AsyncStorage.setItem('hasOnboarded', 'true');
-    // Then push to login. 
-    // Because of the "redirect" rules, you could also just call router.replace('/auth/login').
-    router.replace('/auth/login');
+    try {
+      await AsyncStorage.setItem('hasOnboarded', 'true');
+      console.log('Onboarding completed, redirecting to login...');
+      router.replace('/auth/login');
+    } catch (err) {
+      console.error('Error storing onboarding:', err);
+    }
   };
 
-  const renderFooter = () => {
-    return (
-      <View style={styles.footerContainer}>
-        {/* Pagination dots */}
-        <View style={styles.indicators}>
-          {slides.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.indicator,
-                currentSlideIndex === index && {
-                  backgroundColor: '#333',
-                  width: 20,
-                },
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Buttons */}
-        <View style={styles.buttonsContainer}>
-          {currentSlideIndex === slides.length - 1 ? (
-            // Final Slide => "Get Started" button
-            <TouchableOpacity style={styles.btn} onPress={handleGetStarted}>
-              <Text style={styles.btnText}>Get Started</Text>
-            </TouchableOpacity>
-          ) : (
-            <>
-              <TouchableOpacity style={[styles.btn, styles.btnOutline]} onPress={skipToLastSlide}>
-                <Text style={[styles.btnText, { color: '#333' }]}>Skip</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.btn} onPress={goToNextSlide}>
-                <Text style={styles.btnText}>Next</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </View>
-    );
-  };
-
-  const renderItem = ({ item }: { item: typeof slides[0] }) => (
+  const renderSlide = ({ item }: { item: typeof slides[0] }) => (
     <View style={styles.slide}>
       <Image source={{ uri: item.image }} style={styles.image} />
       <Text style={styles.title}>{item.title}</Text>
       <Text style={styles.description}>{item.description}</Text>
+    </View>
+  );
+
+  const Footer = () => (
+    <View style={styles.footerContainer}>
+      {currentSlideIndex === slides.length - 1 && (
+        <Animated.View
+          style={[
+            styles.buttonWrapper,
+            {
+              opacity: buttonOpacity,
+              transform: [{ scale: buttonScale }],
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={handleGetStarted}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.btnText}>Get Started</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+      <View style={styles.indicators}>
+        {slides.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.indicator,
+              currentSlideIndex === index && styles.activeIndicator,
+            ]}
+          />
+        ))}
+      </View>
     </View>
   );
 
@@ -119,19 +136,19 @@ export default function OnboardingScreen() {
         keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled
-        onMomentumScrollEnd={updateCurrentSlideIndex}
+        snapToInterval={width} // ensures consistent snapping on all platforms
         showsHorizontalScrollIndicator={false}
-        renderItem={renderItem}
+        onMomentumScrollEnd={updateCurrentSlideIndex}
+        renderItem={renderSlide}
       />
-      {renderFooter()}
+      <Footer />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width,
-    height,
+    flex: 1,
     backgroundColor: '#fff',
   },
   slide: {
@@ -167,7 +184,7 @@ const styles = StyleSheet.create({
   indicators: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 20,
+    marginBottom: 20,
   },
   indicator: {
     height: 6,
@@ -176,10 +193,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 3,
     borderRadius: 3,
   },
-  buttonsContainer: {
-    flexDirection: 'row',
-    marginTop: 20,
-    justifyContent: 'space-evenly',
+  activeIndicator: {
+    backgroundColor: '#333',
+    width: 20,
+  },
+  buttonWrapper: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 30,
   },
   btn: {
     backgroundColor: '#333',
@@ -187,14 +208,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     minWidth: 120,
     alignItems: 'center',
-  },
-  btnOutline: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#333',
+    // subtle shadow for better appearance
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   btnText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
   },
 });

@@ -44,7 +44,7 @@ export default function TabLayout() {
         />
       </Tabs>
 
-      {/* ✅ FAB floating above tabs */}
+      {/* FAB floating above tabs */}
       <View style={styles.fabContainer} pointerEvents="box-none">
         <Link href="/notes/create" asChild>
           <Pressable style={styles.fab}>
