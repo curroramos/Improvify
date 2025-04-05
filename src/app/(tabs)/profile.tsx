@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '@/hooks/useUser';
-import { searchNotesByUser } from '@/lib/api/notes'; // The search function that uses Supabase
+import { searchNotesByUser } from '@/lib/api/notes';
+import { getUserProgress } from '@/lib/api/user'; // Import the getUserProgress function
 import NoteCard from '@/components/NoteCard';
 import UserLevelBar from '@/components/UserLevelBar';
 import { Note } from '@/types';
@@ -23,17 +24,35 @@ export default function ProfileScreen() {
   const [search, setSearch] = useState('');
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userProgress, setUserProgress] = useState<{ level: number; total_points: number } | null>(null);
+  const [progressLoading, setProgressLoading] = useState(true);
   const router = useRouter();
 
-  // Debounced effect: waits 300ms after the last keystroke
+  // Fetch user progress when component mounts or user changes
   useEffect(() => {
-    // If there's no user, do nothing
+    async function fetchUserProgress() {
+      if (!user?.id) return;
+      
+      setProgressLoading(true);
+      try {
+        const progress = await getUserProgress(user.id);
+        setUserProgress(progress);
+      } catch (error) {
+        console.error('Failed to fetch user progress:', error);
+      } finally {
+        setProgressLoading(false);
+      }
+    }
+    
+    fetchUserProgress();
+  }, [user?.id]);
+
+  // Debounced effect for note search
+  useEffect(() => {
     if (!user?.id) return;
 
-    // Before we do anything, set loading to true so we show a spinner if needed
     setLoading(true);
 
-    // Create a timer that will call our API after 300 ms
     const timer = setTimeout(async () => {
       try {
         const fetchedNotes = await searchNotesByUser(user.id, search);
@@ -45,7 +64,6 @@ export default function ProfileScreen() {
       }
     }, 300);
 
-    // Cleanup: if the user types again before 300 ms, clearTimeout prevents the old request
     return () => clearTimeout(timer);
   }, [user?.id, search]);
 
@@ -60,7 +78,7 @@ export default function ProfileScreen() {
         <Text style={styles.name}>{user?.full_name || 'User'}</Text>
         <Pressable 
           style={styles.settingsBtn} 
-          onPress={() => router.push('/settings')}  // Add this navigation handler
+          onPress={() => router.push('/settings')}
         >
           <Ionicons name="settings-outline" size={24} color="#333" />
         </Pressable>
@@ -85,8 +103,21 @@ export default function ProfileScreen() {
       {/* Conditionally render based on the selected tab */}
       {tab === 'progress' ? (
         <>
-          <UserLevelBar level={user?.level ?? 1} points={user?.points ?? 0} />
-          <Text style={styles.progressInfo}>This is your progress overview.</Text>
+          {progressLoading ? (
+            <ActivityIndicator size="small" color="#007AFF" style={{ marginVertical: 16 }} />
+          ) : (
+            <UserLevelBar 
+              level={userProgress?.level ?? 1}
+              points={userProgress?.total_points ?? 0} 
+              
+            />
+          )}
+          <Text style={styles.progressInfo}>
+            {progressLoading 
+              ? 'Loading your progress...' 
+              : `Level ${userProgress?.level} with ${userProgress?.total_points} points`
+            }
+          </Text>
         </>
       ) : (
         <>
@@ -113,7 +144,7 @@ export default function ProfileScreen() {
                   backgroundColor="#fff"
                   textColor="#333"
                   textSecondaryColor="#666"
-                  onPress={() => console.log('Navigate to note detail:', item.id)}
+                  onPress={() => router.push(`/notes/${item.id}`)}
                 />
               )}
               ListEmptyComponent={

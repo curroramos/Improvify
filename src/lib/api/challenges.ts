@@ -1,4 +1,6 @@
 import { supabase } from "../supabase";
+import { getUserProgress } from "./user"; // Import from the new user.ts file
+
 
 export interface Challenge {
   id: string;
@@ -113,73 +115,3 @@ export const completeChallenge = async (challengeId: string, userId: string) => 
 };
 
 
-/**
- * Groups points history data based on the selected timeframe.
- */
-const groupData = (history: PointsHistory[], timeframe: Timeframe) => {
-  const grouped: { [key: string]: number } = {};
-
-  history.forEach((entry) => {
-    const date = new Date(entry.date);
-    let key: string;
-
-    if (timeframe === "daily") {
-      key = date.toLocaleDateString("default", { month: "short", day: "numeric" });
-    } else if (timeframe === "weekly") {
-      const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - date.getDay()); // Start of the week (Sunday)
-      key = `Week of ${weekStart.toLocaleDateString("default", { month: "short", day: "numeric" })}`;
-    } else {
-      key = date.toLocaleString("default", { month: "short", year: "numeric" });
-    }
-
-    grouped[key] = (grouped[key] || 0) + entry.points_added;
-  });
-
-  return grouped;
-};
-
-/**
- * Fetches user data by user ID.
- */
-export const getUserProgress = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, level, total_points")
-    .eq("id", userId)
-    .single();
-
-  if (error) {
-    console.error("Error fetching user progress:", error);
-    throw error;
-  }
-
-  return data; // This now returns updated total_points and level
-};
-
-
-/**
- * Fetches the points history for a user within a given timeframe.
- */
-export const getPointsHistory = async (userId: string, timeframe: Timeframe) => {
-  let query = supabase
-    .from("user_points_history")
-    .select("date, points_added")
-    .eq("user_id", userId)
-    .order("date", { ascending: true });
-
-  if (timeframe === "weekly") {
-    query = query.gte("date", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-  } else if (timeframe === "monthly") {
-    query = query.gte("date", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("Error fetching points history:", error);
-    throw error;
-  }
-
-  return data as PointsHistory[];
-};

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Note } from '../types';
+import { NoteDetail } from './NoteDetail'; // Adjust the import path
 
 interface NoteCardProps {
   note: Note;
@@ -27,19 +28,9 @@ const NoteCard = ({
       ]}
     >
       <View style={styles.contentWrapper}>
-        <Text style={[styles.title, { color: textColor }]} numberOfLines={1}>
-          {note.title}
-        </Text>
-
-        <Text style={[styles.content, { color: textSecondaryColor }]} numberOfLines={3}>
-          {note.content}
-        </Text>
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={[styles.date, { color: textSecondaryColor }]}>
-          {new Date(note.created_at).toLocaleDateString()}
-        </Text>
+        <NoteDetail
+          note={note}
+        />
       </View>
     </Pressable>
   );
@@ -51,7 +42,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     marginBottom: 14,
-    backgroundColor: '#fff',
     borderColor: '#eee',
     borderWidth: 1,
     shadowColor: '#000',
@@ -65,23 +55,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.99 }],
   },
   contentWrapper: {
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  content: {
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  footer: {
-    alignItems: 'flex-end',
-  },
-  date: {
-    fontSize: 12,
-    fontStyle: 'italic',
+    flex: 1,
   },
 });
 
