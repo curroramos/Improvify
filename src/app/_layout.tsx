@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
-import { useAuth } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from '../constants/Colors';

@@ -147,3 +147,40 @@ export const addUserPoints = async (
     leveledUp // Add additional flag to indicate if user leveled up
   } as User & { leveledUp?: boolean };
 };
+
+/**
+ * Creates a new user record in the users table
+ */
+export const createUserRecord = async (
+  userId: string,
+  userData: {
+    full_name: string;
+    email: string;
+    avatar_url?: string;
+  }
+): Promise<User> => {
+  // Set default values for new users
+  const newUser = {
+    id: userId,
+    full_name: userData.full_name,
+    email: userData.email,
+    avatar_url: userData.avatar_url || null,
+    level: 1,
+    total_points: 0,
+    created_at: new Date().toISOString(),
+    last_updated: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from("users")
+    .insert([newUser])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating user record:", error);
+    throw error;
+  }
+
+  return data as User;
+};

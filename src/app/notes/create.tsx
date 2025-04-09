@@ -18,7 +18,9 @@ import { Link, router } from 'expo-router';
 import { createNote } from '@/lib/api/notes';
 import { createChallenges, Challenge } from '@/lib/api/challenges';
 import { generateChallenges } from '@/services/aiService';
-import { supabase, useAuth } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import { useChallengeStore } from '@/lib/store/useChallengeStore';
 
 /** Hardcoded templates */
 const TEMPLATES = [
@@ -127,12 +129,10 @@ export default function CreateNoteScreen() {
 
       if (updateError) throw updateError;
 
-      console.log('[5/5] Navigating to challenges...');
-      const navigationPath = `/challenges/${newNote.id}`;
-      console.log('Navigation path:', navigationPath);
+      console.log('[5/5] Navigating to home...');
 
       if (router.canGoBack()) {
-        router.push(navigationPath);
+        router.replace(`/(tabs)`);
       } else {
         console.error('Navigation error: Invalid path or missing route');
         return;
@@ -140,7 +140,6 @@ export default function CreateNoteScreen() {
 
     } catch (error) {
       console.error('Full error details:', error);
-      alert(`Operation failed: ${error.message}`);
     } finally {
       setIsSubmitting(false);
       setIsGenerating(false);

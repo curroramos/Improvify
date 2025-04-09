@@ -31,7 +31,12 @@ export default function HomeScreen() {
     loading,
     error,
     fetchChallenges,
+    lastUpdated,
   } = useChallengeStore();
+
+  useEffect(() => {
+    fetchChallenges();
+  }, [lastUpdated]);
 
   // Set date + random quote on mount
   useEffect(() => {

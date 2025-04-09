@@ -12,17 +12,14 @@ import {
   TouchableWithoutFeedback,
   Platform,
   Image,
-  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { BlurView } from 'expo-blur';
-import { supabase, auth } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import Colors from '../../constants/Colors';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import { MaterialIcons } from '@expo/vector-icons';
-
-const { width } = Dimensions.get('window');
+import { createUserRecord } from '../../lib/api/user';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
@@ -71,30 +68,21 @@ export default function SignupScreen() {
       }
       
       if (data.user) {
+        // Create user record in the users table
+        await createUserRecord(data.user.id, {
+          full_name: name,
+          email: email
+        });
+        
         Alert.alert(
           'Sign Up Successful', 
           'Please check your email for verification instructions.',
           [{ text: 'OK', onPress: () => router.push('/auth/login') }]
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error during signup:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignup = async () => {
-    try {
-      setLoading(true);
-      const { error } = await auth.signInWithGoogle();
-      
-      if (error) {
-        Alert.alert('Google Sign Up Error', error.message);
-      }
-    } catch (error) {
-      console.error('Error during Google signup:', error);
-      Alert.alert('Google Sign Up Error', 'An unexpected error occurred.');
+      setError(error.message || 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -219,18 +207,6 @@ export default function SignupScreen() {
                 <Text style={styles.dividerText}>OR</Text>
                 <View style={styles.dividerLine} />
               </View>
-
-              {/* Sign Up with Google Button */}
-              <Pressable 
-                style={[styles.googleButton, loading && styles.disabled]} 
-                onPress={handleGoogleSignup}
-                disabled={loading}
-              >
-                <Icon name="google" size={20} color="#FFFFFF" style={styles.googleIcon} />
-                <Text style={styles.googleButtonText}>
-                  Sign Up with Google
-                </Text>
-              </Pressable>
 
               {/* Login Link */}
               <Link href="/auth/login" asChild>

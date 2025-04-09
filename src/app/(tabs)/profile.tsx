@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const { user } = useUser();
+  console.log('[Profile Screen] User:', user);
   const [tab, setTab] = useState<'progress' | 'reflections'>('progress');
   const [search, setSearch] = useState('');
   const [notes, setNotes] = useState<Note[]>([]);

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../../lib/supabase';
+import { useAuth } from '../../hooks/useAuth';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '../../components/useColorScheme';
 

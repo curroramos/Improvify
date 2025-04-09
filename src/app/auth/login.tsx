@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, router } from 'expo-router';
 import { 
   View, 
@@ -17,10 +17,11 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { supabase, auth } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import Colors from '../../constants/Colors';
 import Icon from 'react-native-vector-icons/FontAwesome'; 
 import { MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../../hooks/useAuth';
 
 const { width } = Dimensions.get('window');
 
@@ -30,6 +31,27 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const { session } = useAuth();
+  
+  // Log component mount
+  useEffect(() => {
+    console.log('LoginScreen mounted');
+    return () => console.log('LoginScreen unmounted');
+  }, []);
+  
+  // Log when session changes
+  useEffect(() => {
+    console.log('Session state changed:', session ? 'Logged in' : 'No session');
+    if (session) {
+      console.log('Session details:', {
+        userId: session.user?.id,
+        email: session.user?.email,
+        expiresAt: session.expires_at,
+      });
+      console.log('Redirecting to tabs...');
+      router.replace('/(tabs)');
+    }
+  }, [session]);
 
   // Handle email/password login
   const handleLogin = async () => {
@@ -39,36 +61,24 @@ export default function LoginScreen() {
       return;
     }
     setLoading(true);
+    console.log('Attempting login with email:', email);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log('Sending auth request to Supabase...');
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
       if (error) {
+        console.error('Supabase login error:', error);
         throw error;
-      } else {
-        console.log('Login successful, redirecting to tabs...');
-        router.push('/(tabs)');
       }
+      
+      console.log('Login successful:', data.user?.id);
+      // No need to manually redirect - useAuth will detect the session change
     } catch (err) {
       console.error('Login error:', err);
       const errorMessage = err instanceof Error ? err.message : 'An error occurred during login';
+      console.log('Setting error message:', errorMessage);
       setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      setLoading(true);
-      const { error } = await auth.signInWithGoogle();
-      
-      if (error) {
-        Alert.alert('Google Login Error', error.message);
-      }
-    } catch (err) {
-      console.error('Error during Google login:', err);
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
-      Alert.alert('Google Login Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -175,18 +185,6 @@ export default function LoginScreen() {
                 <Text style={styles.dividerText}>OR</Text>
                 <View style={styles.dividerLine} />
               </View>
-
-              {/* Sign In with Google Button */}
-              <Pressable 
-                style={[styles.googleButton, loading && styles.disabled]} 
-                onPress={handleGoogleLogin}
-                disabled={loading}
-              >
-                <Icon name="google" size={20} color="#FFFFFF" style={styles.googleIcon} />
-                <Text style={styles.googleButtonText}>
-                  {loading ? 'Signing In...' : 'Sign In with Google'}
-                </Text>
-              </Pressable>
 
               {/* Sign Up Link */}
               <Link href="/auth/signup" asChild>
