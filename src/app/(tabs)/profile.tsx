@@ -8,11 +8,13 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '@/lib/store/useUserStore';
 import { searchNotesByUser } from '@/lib/api/notes';
-import { getUserProgress } from '@/lib/api/user'; // Import the getUserProgress function
+import { getUserProgress, updateUser } from '@/lib/api/user'; // Import the getUserProgress function
 import NoteCard from '@/components/NoteCard';
 import UserLevelBar from '@/components/UserLevelBar';
 import { Note } from '@/types';
@@ -29,7 +31,34 @@ export default function ProfileScreen() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [progressLoading, setProgressLoading] = useState(true);
+  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const router = useRouter();
+
+  // Avatar options
+  const avatarOptions = [
+    'https://api.dicebear.com/7.x/fun-emoji/png?seed=Aiden',
+    'https://api.dicebear.com/7.x/fun-emoji/png?seed=Luna',
+    'https://api.dicebear.com/7.x/fun-emoji/png?seed=Hiro',
+    'https://api.dicebear.com/7.x/fun-emoji/png?seed=Zara',
+    'https://api.dicebear.com/7.x/fun-emoji/png?seed=Theo',
+    'https://api.dicebear.com/7.x/fun-emoji/png?seed=Ivy',
+    'https://api.dicebear.com/7.x/fun-emoji/png?seed=Arlo',
+    'https://api.dicebear.com/7.x/fun-emoji/png?seed=Sage',
+    'https://api.dicebear.com/7.x/fun-emoji/png?seed=Nova',
+  ];  
+
+  const handleAvatarChange = async (avatarUrl: string) => {
+    try {
+      if (user?.id) {
+        await updateUser(user.id, { avatar_url: avatarUrl });
+        fetchUser(user.id);
+      }
+      setAvatarModalVisible(false);
+    } catch (error) {
+      console.error('Failed to update avatar:', error);
+    }
+  };
+  
 
   // Fetch user on mount
   useEffect(() => {
@@ -83,10 +112,12 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Image
-          source={{ uri: user?.avatar_url || 'https://via.placeholder.com/80' }}
-          style={styles.avatar}
-        />
+        <Pressable onPress={() => setAvatarModalVisible(true)}>
+          <Image
+            source={{ uri: user?.avatar_url || 'https://via.placeholder.com/80' }}
+            style={styles.avatar}
+          />
+        </Pressable>
         <Text style={styles.name}>{user?.full_name || 'User'}</Text>
         <Pressable 
           style={styles.settingsBtn} 
@@ -95,6 +126,39 @@ export default function ProfileScreen() {
           <Ionicons name="settings-outline" size={24} color="#333" />
         </Pressable>
       </View>
+
+      {/* Avatar Modal */}
+      <Modal
+        visible={avatarModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setAvatarModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Choose Avatar</Text>
+            
+            <ScrollView contentContainerStyle={styles.avatarGrid}>
+              {avatarOptions.map((avatar, index) => (
+                <Pressable
+                  key={index}
+                  style={styles.avatarOption}
+                  onPress={() => handleAvatarChange(avatar)}
+                >
+                  <Image source={{ uri: avatar }} style={styles.avatarOptionImage} />
+                </Pressable>
+              ))}
+            </ScrollView>
+            
+            <Pressable 
+              style={styles.closeButton}
+              onPress={() => setAvatarModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* Tabs */}
       <View style={styles.tabs}>
@@ -235,5 +299,55 @@ const styles = StyleSheet.create({
     marginTop: 24,
     color: '#999',
     fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  avatarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  avatarOption: {
+    margin: 8,
+    borderRadius: 50,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#ddd',
+  },
+  avatarOptionImage: {
+    width: 60,
+    height: 60,
+  },
+  closeButton: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: '#007AFF',
   },
 });

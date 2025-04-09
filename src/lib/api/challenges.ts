@@ -114,4 +114,35 @@ export const completeChallenge = async (challengeId: string, userId: string) => 
   return { challenge: data, user: updatedUser };
 };
 
+/**
+ * Fetches all challenges associated with a given user ID.
+ */
+export const getChallengesByUserId = async (userId: string) => {
+  if (!userId) {
+    console.error("Error: userId is required to fetch challenges.");
+    return [];
+  }
+
+  console.log(`Querying Supabase for challenges with userId: ${userId}`);
+
+  const { data, error } = await supabase
+    .from("challenges")
+    .select("*")
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Supabase error fetching challenges by userId:", error);
+    throw error;
+  }
+
+  if (!data || data.length === 0) {
+    console.warn(`No challenges found for userId: ${userId}`);
+  } else {
+    console.log(`Retrieved ${data.length} challenges for userId: ${userId}`);
+  }
+
+  return data as Challenge[];
+};
+
+
 

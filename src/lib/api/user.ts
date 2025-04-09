@@ -184,3 +184,38 @@ export const createUserRecord = async (
 
   return data as User;
 };
+
+/**
+ * Updates arbitrary user fields
+ */
+export const updateUser = async (
+  userId: string,
+  updates: Partial<User>
+): Promise<User> => {
+  if (!userId) {
+    console.error("Error: Missing user ID");
+    throw new Error("User ID is required");
+  }
+
+  if (!updates || Object.keys(updates).length === 0) {
+    console.error("Error: No updates provided");
+    throw new Error("No update fields provided");
+  }
+
+  const { data, error } = await supabase
+    .from("users")
+    .update({
+      ...updates,
+      last_updated: new Date().toISOString()
+    })
+    .eq("id", userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating user:", error);
+    throw error;
+  }
+
+  return data as User;
+};
