@@ -6,6 +6,8 @@ import { completeChallenge } from '@/lib/api/challenges';
 import { useUser } from '@/hooks/useUser';
 import { Challenge } from '@/types';
 import ChallengeDetail from '@/components/ChallengeDetail';
+import { useChallengeStore } from '@/lib/store/useChallengeStore';
+import { useUserStore } from '@/lib/store/useUserStore';
 
 export default function ChallengeDetailsScreen() {
   const { challengeId } = useLocalSearchParams<{ challengeId: string }>();
@@ -52,6 +54,10 @@ export default function ChallengeDetailsScreen() {
       const { challenge: updated, user: updatedUser } = await completeChallenge(challenge.id, user.id);
       if (updated?.[0]) setChallenge(updated[0]);
       console.log('User updated:', updatedUser);
+      useChallengeStore.getState().fetchChallenges();
+      console.log('[challenge detail] Challenges fetched successfully');
+      useUserStore.getState().refetchUser(user.id); // <- this line refetches user
+      console.log('[challenge detail] User refetched successfully');
     } catch (err) {
       console.error('Failed to complete challenge:', err);
     } finally {

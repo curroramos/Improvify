@@ -129,6 +129,9 @@ export default function CreateNoteScreen() {
 
       if (updateError) throw updateError;
 
+      useChallengeStore.getState().fetchChallenges();
+      console.log('[create] Challenges fetched successfully');
+
       console.log('[5/5] Navigating to home...');
 
       if (router.canGoBack()) {

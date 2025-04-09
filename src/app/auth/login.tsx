@@ -19,7 +19,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { supabase } from '../../lib/supabase';
 import Colors from '../../constants/Colors';
-import Icon from 'react-native-vector-icons/FontAwesome'; 
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -86,7 +85,7 @@ export default function LoginScreen() {
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.container}>
           <LinearGradient

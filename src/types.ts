@@ -1,5 +1,8 @@
 export type User = {
   id: string; // UUID
+  full_name?: string;
+  email?: string;
+  avatar_url?: string;
   level: number;
   total_points: number;
   created_at: string; // ISO timestamp

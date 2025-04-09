@@ -1,21 +1,40 @@
 import React from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 type UserLevelBarProps = {
-  level: number;
   points: number;
-  nextLevelPoints?: number; // Points needed for next level
 };
 
-export default function UserLevelBar({ 
-  level, 
-  points, 
-  nextLevelPoints = 100 // Default value if not provided
-}: UserLevelBarProps) {
-  // Calculate progress percentage (capped at 100%)
-  const progress = Math.min((points / nextLevelPoints) * 100, 100);
-  
+const LEVEL_THRESHOLDS = [100, 300, 600, 1000, 1500, 2100, 2800, 3600];
+
+function getLevelData(points: number, thresholds: number[]) {
+  let level = 1;
+
+  for (let i = 0; i < thresholds.length; i++) {
+    if (points < thresholds[i]) {
+      const prev = i === 0 ? 0 : thresholds[i - 1];
+      const currentLevelPoints = points - prev;
+      const nextLevelPoints = thresholds[i] - prev;
+      const progress = Math.min((currentLevelPoints / nextLevelPoints) * 100, 100);
+
+      return { level: i + 1, currentLevelPoints, nextLevelPoints, progress };
+    }
+  }
+
+  // Max level reached
+  const last = thresholds[thresholds.length - 1];
+  return {
+    level: thresholds.length + 1,
+    currentLevelPoints: last,
+    nextLevelPoints: 0,
+    progress: 100,
+  };
+}
+
+export default function UserLevelBar({ points }: UserLevelBarProps) {
+  const { level, currentLevelPoints, nextLevelPoints, progress } = getLevelData(points, LEVEL_THRESHOLDS);
+
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
@@ -23,28 +42,23 @@ export default function UserLevelBar({
           <MaterialIcons name="stars" size={16} color="#ffffff" />
           <Text style={styles.levelText}>{level}</Text>
         </View>
-        <Text style={styles.points}>{points} / {nextLevelPoints} pts</Text>
+        <Text style={styles.points}>
+          {currentLevelPoints} / {nextLevelPoints} pts
+        </Text>
       </View>
-      
+
       <View style={styles.progressContainer}>
-        <View 
-          style={[
-            styles.progressBar, 
-            { width: `${progress}%` }
-          ]} 
-        />
-        
-        {/* Milestones */}
+        <View style={[styles.progressBar, { width: `${progress}%` }]} />
+
         <View style={[styles.milestone, { left: '25%' }]} />
         <View style={[styles.milestone, { left: '50%' }]} />
         <View style={[styles.milestone, { left: '75%' }]} />
-        
-        {/* Progress indicator */}
+
         <View style={[styles.progressIndicator, { left: `${progress}%` }]}>
           <MaterialIcons name="brightness-1" size={12} color="#FFD700" />
         </View>
       </View>
-      
+
       <View style={styles.labelRow}>
         <Text style={styles.currentLevelLabel}>Level {level}</Text>
         <Text style={styles.nextLevelLabel}>Level {level + 1}</Text>
@@ -118,7 +132,7 @@ const styles = StyleSheet.create({
   progressIndicator: {
     position: 'absolute',
     top: -2,
-    transform: [{ translateX: -6 }], // Center the indicator
+    transform: [{ translateX: -6 }],
   },
   labelRow: {
     flexDirection: 'row',

@@ -18,22 +18,27 @@ export const useChallengeStore = create<State>((set) => ({
   error: '',
   fetchChallenges: async () => {
     set({ loading: true, error: '' });
-
+  
     try {
       const notes = await fetchNotes();
       if (notes.length === 0) {
         set({ challenges: [], loading: false });
         return;
       }
-
-      const noteId = notes[0].id;
-      const challenges = await getChallengesByNoteId(noteId);
-      set({ challenges });
+  
+      const challengesArrays = await Promise.all(
+        notes.map((note) => getChallengesByNoteId(note.id))
+      );
+  
+      const allChallenges = challengesArrays.flat();
+      set({ challenges: allChallenges });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to fetch challenges.' });
+      set({
+        error: error instanceof Error ? error.message : 'Failed to fetch challenges.',
+      });
     } finally {
       set({ loading: false });
     }
-  },
+  },  
   clearChallenges: () => set({ challenges: [], error: '' }),
 }));

@@ -10,43 +10,54 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useUser } from '@/hooks/useUser';
+import { useUserStore } from '@/lib/store/useUserStore';
 import { searchNotesByUser } from '@/lib/api/notes';
 import { getUserProgress } from '@/lib/api/user'; // Import the getUserProgress function
 import NoteCard from '@/components/NoteCard';
 import UserLevelBar from '@/components/UserLevelBar';
 import { Note } from '@/types';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function ProfileScreen() {
-  const { user } = useUser();
+  const { userId, isAuthenticated } = useAuth();
+  const { user, fetchUser } = useUserStore();
+
   console.log('[Profile Screen] User:', user);
   const [tab, setTab] = useState<'progress' | 'reflections'>('progress');
   const [search, setSearch] = useState('');
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userProgress, setUserProgress] = useState<{ level: number; total_points: number } | null>(null);
   const [progressLoading, setProgressLoading] = useState(true);
   const router = useRouter();
 
-  // Fetch user progress when component mounts or user changes
+  // Fetch user on mount
   useEffect(() => {
+    if (userId && isAuthenticated) {
+      fetchUser(userId);
+    }
+  }, [userId, isAuthenticated]);
+
+  // Fetch user progress when user is loaded
+  useEffect(() => {
+    if (!user?.id) return;
+
     async function fetchUserProgress() {
-      if (!user?.id) return;
-      
       setProgressLoading(true);
       try {
-        const progress = await getUserProgress(user.id);
-        setUserProgress(progress);
+        if (user) {
+          const progress = await getUserProgress(user.id);
+        }
       } catch (error) {
         console.error('Failed to fetch user progress:', error);
       } finally {
         setProgressLoading(false);
       }
     }
-    
+
     fetchUserProgress();
   }, [user?.id]);
+
 
   // Debounced effect for note search
   useEffect(() => {
@@ -108,15 +119,13 @@ export default function ProfileScreen() {
             <ActivityIndicator size="small" color="#007AFF" style={{ marginVertical: 16 }} />
           ) : (
             <UserLevelBar 
-              level={userProgress?.level ?? 1}
-              points={userProgress?.total_points ?? 0} 
-              
+              points={user?.total_points ?? 0} 
             />
           )}
           <Text style={styles.progressInfo}>
             {progressLoading 
               ? 'Loading your progress...' 
-              : `Level ${userProgress?.level} with ${userProgress?.total_points} points`
+              : `Level ${user?.level} with ${user?.total_points} points`
             }
           </Text>
         </>
