@@ -31,12 +31,7 @@ export default function HomeScreen() {
     loading,
     error,
     fetchChallenges,
-    lastUpdated,
   } = useChallengeStore();
-
-  useEffect(() => {
-    fetchChallenges();
-  }, [lastUpdated]);
 
   // Set date + random quote on mount
   useEffect(() => {
@@ -57,8 +52,6 @@ export default function HomeScreen() {
     setCurrentQuote(QUOTES[randomIndex]);
   };
 
-  // Fetch when screen focuses, but only if needed
-  // (e.g., if challenges array is empty or you truly want a refetch each time)
   useFocusEffect(
     useCallback(() => {
       if (challenges.length === 0) {
