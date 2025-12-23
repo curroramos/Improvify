@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,278 +6,234 @@ import {
   Dimensions,
   Animated,
   TouchableOpacity,
-  StatusBar,
-  ImageBackground,
-  SafeAreaView,
-  Platform,
+  ViewToken,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import LottieView from 'lottie-react-native';
-import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
-import MaskedView from '@react-native-masked-view/masked-view';
-import { useFonts, Poppins_700Bold, Poppins_400Regular } from '@expo-google-fonts/poppins';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import LottieView from 'lottie-react-native';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 
-const slides = [
+interface Slide {
+  id: string;
+  translationKey: 'welcome' | 'challenges' | 'progress';
+  gradient: readonly [string, string, string];
+  icon: keyof typeof MaterialIcons.glyphMap;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  animation: any;
+}
+
+const slides: Slide[] = [
   {
     id: '1',
-    title: 'Welcome to Improvify',
-    subtitle: 'Your Personal Growth Journey',
-    description: 'Grow daily with reflections, challenges, and measurable progress.',
-    image: 'https://images.unsplash.com/photo-1552581234-26160f608093?q=80&w=2000',
-    color: ['#4F46E5', '#7C3AED'],
+    translationKey: 'welcome',
+    gradient: ['#667eea', '#764ba2', '#6B73FF'] as const,
+    icon: 'auto-awesome',
     animation: require('../../../assets/animations/welcome-animation.json'),
-    icon: 'self-improvement',
   },
   {
     id: '2',
-    title: 'Daily Challenges',
-    subtitle: 'Personalized for You',
-    description: 'Get 3 tailored challenges every day to boost your personal growth journey.',
-    image: 'https://images.unsplash.com/photo-1484863137850-59afcfe05386?q=80&w=2000',
-    color: ['#10B981', '#059669'],
-    animation: require('../../../assets/animations/challenge-animation.json'),
+    translationKey: 'challenges',
+    gradient: ['#11998e', '#38ef7d', '#23D5AB'] as const,
     icon: 'emoji-events',
+    animation: require('../../../assets/animations/challenge-animation.json'),
   },
   {
     id: '3',
-    title: 'Track Progress',
-    subtitle: `See How Far You've Come`,
-    description: 'Visualize your growth with beautiful charts and achievement badges.',
-    image: 'https://images.unsplash.com/photo-1571331627305-b3603f4ef4a7?q=80&w=2000',
-    color: ['#EC4899', '#DB2777'],
-    animation: require('../../../assets/animations/progress-animation.json'),
+    translationKey: 'progress',
+    gradient: ['#FC466B', '#3F5EFB', '#C471ED'] as const,
     icon: 'insights',
+    animation: require('../../../assets/animations/progress-animation.json'),
   },
 ];
 
 export default function OnboardingScreen() {
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const { t } = useTranslation('onboarding');
+  const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
+  const flatListRef = useRef<Animated.FlatList<Slide>>(null);
   const router = useRouter();
-  
-  // Animation values
-  const buttonOpacity = useRef(new Animated.Value(0)).current;
-  const buttonScale = useRef(new Animated.Value(0.8)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  
-  const [fontsLoaded] = useFonts({
-    Poppins_700Bold,
-    Poppins_400Regular,
-  });
-  
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start();
-    
-    if (currentSlideIndex === slides.length - 1) {
-      // Animate button in
-      Animated.parallel([
-        Animated.timing(buttonOpacity, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.spring(buttonScale, {
-          toValue: 1,
-          friction: 6,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      // Reset animation if user goes back
-      buttonOpacity.setValue(0);
-      buttonScale.setValue(0.8);
-    }
-  }, [currentSlideIndex]);
+  const insets = useSafeAreaInsets();
 
-  const handleGetStarted = async () => {
+  const viewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+      setCurrentIndex(viewableItems[0].index);
+    }
+  }, []);
+
+  const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+
+  const handleComplete = async () => {
     try {
       await AsyncStorage.setItem('hasOnboarded', 'true');
-      console.log('Onboarding completed, redirecting to login...');
       router.replace('/auth/signup');
-    } catch (err) {
-      console.error('Error storing onboarding:', err);
+    } catch {
+      router.replace('/auth/signup');
     }
   };
 
-  const nextSlide = () => {
-    if (currentSlideIndex < slides.length - 1) {
-      slidesRef.current?.scrollToIndex({ 
-        index: currentSlideIndex + 1,
-        animated: true 
+  const handleNext = () => {
+    if (currentIndex < slides.length - 1) {
+      flatListRef.current?.scrollToIndex({
+        index: currentIndex + 1,
+        animated: true,
       });
     } else {
-      handleGetStarted();
+      handleComplete();
     }
   };
 
-  // Add proper type to the ref
-  const slidesRef = useRef<Animated.FlatList>(null);
+  const isLastSlide = currentIndex === slides.length - 1;
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  const renderSlide = ({ item, index }: { item: Slide; index: number }) => {
+    const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+
+    const scale = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.8, 1, 0.8],
+      extrapolate: 'clamp',
+    });
+
+    const opacity = scrollX.interpolate({
+      inputRange,
+      outputRange: [0, 1, 0],
+      extrapolate: 'clamp',
+    });
+
+    const translateY = scrollX.interpolate({
+      inputRange,
+      outputRange: [60, 0, 60],
+      extrapolate: 'clamp',
+    });
+
+    return (
+      <View style={styles.slide}>
+        <LinearGradient
+          colors={item.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+
+        {/* Decorative circles */}
+        <View style={styles.decorativeContainer}>
+          <Animated.View
+            style={[styles.decorativeCircle, styles.circle1, { transform: [{ scale }] }]}
+          />
+          <Animated.View
+            style={[styles.decorativeCircle, styles.circle2, { transform: [{ scale }] }]}
+          />
+          <Animated.View
+            style={[styles.decorativeCircle, styles.circle3, { transform: [{ scale }] }]}
+          />
+        </View>
+
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity,
+              transform: [{ translateY }],
+              paddingTop: insets.top + 20,
+            },
+          ]}
+        >
+          {/* Icon Badge */}
+          <View style={styles.iconBadge}>
+            <MaterialIcons name={item.icon} size={28} color="#fff" />
+          </View>
+
+          {/* Animation */}
+          <View style={styles.animationContainer}>
+            <LottieView source={item.animation} autoPlay loop style={styles.animation} />
+          </View>
+
+          {/* Text Content */}
+          <View style={styles.textContent}>
+            <Text style={styles.subtitle}>{t(`slides.${item.translationKey}.subtitle`)}</Text>
+            <Text style={styles.title}>{t(`slides.${item.translationKey}.title`)}</Text>
+            <View style={styles.descriptionCard}>
+              <Text style={styles.description}>
+                {t(`slides.${item.translationKey}.description`)}
+              </Text>
+            </View>
+          </View>
+        </Animated.View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      {/* Set status bar to transparent */}
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      
+      <StatusBar style="light" />
+
+      {/* Background gradient for current slide */}
+      <LinearGradient
+        colors={slides[currentIndex].gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
+
       <Animated.FlatList
-        ref={slidesRef}
+        ref={flatListRef}
         data={slides}
+        renderItem={renderSlide}
         keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false }
-        )}
-        onMomentumScrollEnd={(event) => {
-          const index = Math.round(event.nativeEvent.contentOffset.x / width);
-          setCurrentSlideIndex(index);
-        }}
+        bounces={false}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
+          useNativeDriver: true,
+        })}
         scrollEventThrottle={16}
-        renderItem={({ item, index }) => {
-          const inputRange = [
-            (index - 1) * width,
-            index * width,
-            (index + 1) * width
-          ];
-          
-          const opacity = scrollX.interpolate({
-            inputRange,
-            outputRange: [0.3, 1, 0.3],
-            extrapolate: 'clamp'
-          });
-          
-          const translateY = scrollX.interpolate({
-            inputRange,
-            outputRange: [50, 0, 50],
-            extrapolate: 'clamp'
-          });
-
-          return (
-            <View style={styles.slide}>
-              <View style={styles.slideContent}>
-                <View style={styles.iconContainer}>
-                  <LinearGradient colors={item.color} style={styles.iconBackground}>
-                    <MaterialIcons name={item.icon} size={40} color="#fff" />
-                  </LinearGradient>
-                </View>
-          
-                <View style={styles.contentContainer}>
-                  <LottieView
-                    source={item.animation}
-                    autoPlay
-                    loop
-                    style={styles.animation}
-                  />
-          
-                  <Animated.View
-                    style={[
-                      styles.textContainer,
-                      { opacity, transform: [{ translateY }] },
-                    ]}
-                  >
-                    <Text style={styles.subtitle}>{item.subtitle}</Text>
-          
-                    <MaskedView
-                      maskElement={<Text style={styles.title}>{item.title}</Text>}
-                    >
-                      <LinearGradient
-                        colors={item.color}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                      >
-                        <Text style={[styles.title, { opacity: 0 }]}>{item.title}</Text>
-                      </LinearGradient>
-                    </MaskedView>
-          
-                    <BlurView intensity={80} tint="dark" style={styles.descriptionContainer}>
-                      <Text style={styles.description}>{item.description}</Text>
-                    </BlurView>
-                  </Animated.View>
-                </View>
-              </View>
-            </View>
-          );          
-        }}
+        onViewableItemsChanged={viewableItemsChanged}
+        viewabilityConfig={viewConfig}
       />
-      
-      {/* Bottom Controls - Keep SafeAreaView here to protect from notches */}
-      <SafeAreaView style={styles.controlsWrapper}>
-        <View style={styles.controlsContainer}>
-          {/* Skip button - Use empty View to maintain layout when hidden */}
-          <View style={styles.skipButtonContainer}>
-            {currentSlideIndex < slides.length - 1 && (
-              <TouchableOpacity
-                style={styles.skipButton}
-                onPress={handleGetStarted}
-              >
-                <Text style={styles.skipText}>Skip</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          
-          {/* Progress Indicators */}
-          <View style={styles.indicators}>
-            {slides.map((_, index) => {
-              const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
-              
-              const dotWidth = scrollX.interpolate({
-                inputRange,
-                outputRange: [8, 24, 8],
-                extrapolate: 'clamp',
-              });
-              
-              const backgroundColor = scrollX.interpolate({
-                inputRange,
-                outputRange: ['rgba(255, 255, 255, 0.4)', '#FFFFFF', 'rgba(255, 255, 255, 0.4)'],
-                extrapolate: 'clamp',
-              });
 
-              return (
-                <Animated.View
-                  key={index}
-                  style={[
-                    styles.indicator,
-                    { width: dotWidth, backgroundColor }
-                  ]}
-                />
-              );
-            })}
-          </View>
-          
-          {/* Next/Get Started Button */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[
-                styles.navigationButton,
-                { backgroundColor: slides[currentSlideIndex].color[0] }
-              ]}
-              onPress={nextSlide}
-              activeOpacity={0.8}
-            >
-              {currentSlideIndex < slides.length - 1 ? (
-                <MaterialIcons name="arrow-forward" size={24} color="white" />
-              ) : (
-                <Text style={styles.getStartedText}>Get Started</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+      {/* Bottom Controls */}
+      <View style={[styles.controls, { paddingBottom: insets.bottom + 20 }]}>
+        {/* Skip Button */}
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={handleComplete}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.skipText}>{isLastSlide ? '' : t('skip')}</Text>
+        </TouchableOpacity>
+
+        {/* Pagination Dots */}
+        <View style={styles.pagination}>
+          {slides.map((_, index) => {
+            const isActive = index === currentIndex;
+            return (
+              <View
+                key={index}
+                style={[styles.dot, isActive ? styles.dotActive : styles.dotInactive]}
+              />
+            );
+          })}
         </View>
-      </SafeAreaView>
+
+        {/* Next/Get Started Button */}
+        <TouchableOpacity
+          style={[styles.nextButton, isLastSlide && styles.getStartedButton]}
+          onPress={handleNext}
+          activeOpacity={0.8}
+        >
+          {isLastSlide ? (
+            <Text style={styles.getStartedText}>{t('getStarted')}</Text>
+          ) : (
+            <MaterialIcons name="arrow-forward" size={24} color="#fff" />
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -285,170 +241,163 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  // Replace safeContainer with slideContent that goes edge to edge
-  slideContent: {
-    flex: 1,
-    width: '100%',
-    // Add padding for status bar to prevent content from going underneath it
-    paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 30,
+    backgroundColor: '#000',
   },
   slide: {
     width,
-    height: '100%',
+    height,
+    justifyContent: 'flex-start',
   },
-  contentContainer: {
+  decorativeContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  decorativeCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  circle1: {
+    width: width * 0.8,
+    height: width * 0.8,
+    top: -width * 0.2,
+    right: -width * 0.3,
+  },
+  circle2: {
+    width: width * 0.6,
+    height: width * 0.6,
+    bottom: height * 0.15,
+    left: -width * 0.3,
+  },
+  circle3: {
+    width: width * 0.4,
+    height: width * 0.4,
+    bottom: height * 0.4,
+    right: -width * 0.1,
+  },
+  content: {
     flex: 1,
-    width: width,
     alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  iconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    // Adjust vertical position to move content up
-    marginTop: -height * 0.05,
-    marginBottom: 60,
+    alignItems: 'center',
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  animationContainer: {
+    width: width * 0.75,
+    height: width * 0.6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
   },
   animation: {
-    width: width * 0.7,
-    height: width * 0.65,
-    marginBottom: 30,
-  },
-  textContainer: {
     width: '100%',
+    height: '100%',
+  },
+  textContent: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-    maxWidth: 500,
+    paddingHorizontal: 16,
+    maxWidth: 400,
   },
   subtitle: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 16,
-    marginBottom: 8,
-    fontFamily: 'Poppins_400Regular',
-    textTransform: 'uppercase',
-    letterSpacing: 3,
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
+    letterSpacing: 2.5,
+    marginBottom: 12,
+    textAlign: 'center',
   },
   title: {
-    fontSize: 34,
-    fontFamily: 'Poppins_700Bold',
-    textAlign: 'center',
-    marginBottom: 20,
+    fontSize: 42,
+    fontWeight: '800',
     color: '#fff',
+    textAlign: 'center',
+    lineHeight: 48,
+    marginBottom: 24,
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  descriptionContainer: {
-    padding: 20,
-    borderRadius: 16,
-    marginTop: 20,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  descriptionCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   description: {
-    color: '#fff',
     fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
-    fontFamily: 'Poppins_400Regular',
     lineHeight: 24,
+    fontWeight: '500',
   },
-  controlsWrapper: {
+  controls: {
     position: 'absolute',
+    bottom: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    zIndex: 10,
-    backgroundColor: 'transparent', // Make sure it's transparent
-  },
-  controlsContainer: {
-    paddingHorizontal: 20, 
-    paddingVertical: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: Platform.OS === 'ios' ? 50 : 40,
-    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingTop: 20,
   },
-  indicators: {
-    flexDirection: 'row',
+  skipButton: {
+    width: 80,
+    height: 44,
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  indicator: {
+  skipText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+  },
+  pagination: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dot: {
     height: 8,
-    width: 8,
     borderRadius: 4,
     marginHorizontal: 4,
   },
-  buttonContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  dotActive: {
+    width: 28,
+    backgroundColor: '#fff',
+  },
+  dotInactive: {
+    width: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   nextButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   getStartedButton: {
-    width: 120,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-  },
-  navigationButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+    width: 140,
+    borderRadius: 28,
+    backgroundColor: '#fff',
   },
   getStartedText: {
-    color: '#fff',
-    fontSize: 14,
-    fontFamily: 'Poppins_700Bold',
-  },
-  skipButton: {
-    padding: 10,
-  },
-  skipText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 14,
-    fontFamily: 'Poppins_400Regular',
-  },
-  skipButtonContainer: {
-    width: 60, // Match width with the button container on the right
-    height: 60, // Ensure consistent height
-    justifyContent: 'center',
-  },
-  iconContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: Platform.OS === 'ios' ? 20 : 40,
-  },
-  iconBackground: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
   },
 });

@@ -1,150 +1,353 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+  withSpring,
+  withDelay,
+  Easing,
+  FadeIn,
+  FadeInUp,
+} from 'react-native-reanimated';
+import { getLevelProgressData } from '@/lib/domain/leveling';
+import LevelUpCelebration from './LevelUpCelebration';
+import { useTheme } from '@/theme';
 
 type UserLevelBarProps = {
   points: number;
+  onPress?: () => void;
 };
 
-const LEVEL_THRESHOLDS = [100, 300, 600, 1000, 1500, 2100, 2800, 3600];
+export default function UserLevelBar({ points, onPress }: UserLevelBarProps) {
+  const { theme, gradients } = useTheme();
+  const pressScale = useSharedValue(1);
+  const previousLevelRef = useRef<number | null>(null);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [celebrationLevel, setCelebrationLevel] = useState(1);
 
-function getLevelData(points: number, thresholds: number[]) {
-  let level = 1;
+  const pressAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pressScale.value }],
+  }));
+  const { level, title, currentLevelPoints, nextLevelPoints, progress, pointsToNext } =
+    getLevelProgressData(points);
 
-  for (let i = 0; i < thresholds.length; i++) {
-    if (points < thresholds[i]) {
-      const prev = i === 0 ? 0 : thresholds[i - 1];
-      const currentLevelPoints = points - prev;
-      const nextLevelPoints = thresholds[i] - prev;
-      const progress = Math.min((currentLevelPoints / nextLevelPoints) * 100, 100);
-
-      return { level: i + 1, currentLevelPoints, nextLevelPoints, progress };
+  // Detect level up
+  useEffect(() => {
+    if (previousLevelRef.current !== null && level > previousLevelRef.current) {
+      setCelebrationLevel(level);
+      setShowLevelUp(true);
     }
-  }
+    previousLevelRef.current = level;
+  }, [level]);
 
-  // Max level reached
-  const last = thresholds[thresholds.length - 1];
-  return {
-    level: thresholds.length + 1,
-    currentLevelPoints: last,
-    nextLevelPoints: 0,
-    progress: 100,
+  const progressWidth = useDerivedValue(() =>
+    withDelay(300, withTiming(progress, { duration: 1000, easing: Easing.out(Easing.cubic) }))
+  );
+
+  const glowOpacity = useDerivedValue(() => withDelay(800, withTiming(0.6, { duration: 500 })));
+
+  const badgeScale = useDerivedValue(() =>
+    withDelay(100, withSpring(1, { damping: 12, stiffness: 200 }))
+  );
+
+  const progressAnimatedStyle = useAnimatedStyle(() => ({
+    width: `${progressWidth.value}%`,
+  }));
+
+  const glowAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+  }));
+
+  const badgeAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: badgeScale.value }],
+  }));
+
+  const handlePressIn = () => {
+    if (onPress) {
+      pressScale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
+    }
   };
-}
 
-export default function UserLevelBar({ points }: UserLevelBarProps) {
-  const { level, currentLevelPoints, nextLevelPoints, progress } = getLevelData(points, LEVEL_THRESHOLDS);
+  const handlePressOut = () => {
+    if (onPress) {
+      pressScale.value = withSpring(1, { damping: 15, stiffness: 400 });
+    }
+  };
+
+  const content = (
+    <LinearGradient
+      colors={[theme.surface.primary, theme.surface.secondary]}
+      style={[styles.card, { shadowColor: theme.brand.primary }]}
+    >
+      <Animated.View entering={FadeInUp.delay(100).duration(400)} style={styles.header}>
+        <View style={styles.levelInfo}>
+          <Animated.View
+            style={[styles.levelBadge, badgeAnimatedStyle, { shadowColor: theme.brand.primary }]}
+          >
+            <LinearGradient colors={gradients.primary} style={styles.levelGradient}>
+              <MaterialIcons name="workspace-premium" size={20} color={theme.text.inverse} />
+              <Text style={[styles.levelNumber, { color: theme.text.inverse }]}>{level}</Text>
+            </LinearGradient>
+          </Animated.View>
+
+          <View style={styles.levelTextContainer}>
+            <Text style={[styles.levelTitle, { color: theme.text.primary }]}>{title}</Text>
+            <Text style={[styles.levelSubtitle, { color: theme.text.tertiary }]}>
+              Level {level}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.pointsContainer}>
+          <View style={styles.pointsDisplay}>
+            <Text style={[styles.totalPoints, { color: theme.text.primary }]}>
+              {points.toLocaleString()}
+            </Text>
+            <Text style={[styles.pointsLabel, { color: theme.text.tertiary }]}>total XP</Text>
+          </View>
+          {onPress && (
+            <View style={styles.chevronContainer}>
+              <Ionicons name="chevron-forward" size={20} color={theme.text.tertiary} />
+            </View>
+          )}
+        </View>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.delay(200).duration(400)} style={styles.progressSection}>
+        <View style={styles.progressLabels}>
+          <Text style={[styles.progressCurrent, { color: theme.brand.primary }]}>
+            {currentLevelPoints.toLocaleString()} XP
+          </Text>
+          {nextLevelPoints > 0 && (
+            <Text style={[styles.progressTarget, { color: theme.text.tertiary }]}>
+              {nextLevelPoints.toLocaleString()} XP
+            </Text>
+          )}
+        </View>
+
+        <View style={[styles.progressTrack, { backgroundColor: theme.background.tertiary }]}>
+          <Animated.View
+            style={[
+              styles.progressGlow,
+              glowAnimatedStyle,
+              { backgroundColor: `${theme.brand.primary}1A` },
+            ]}
+          />
+          <Animated.View style={[styles.progressBar, progressAnimatedStyle]}>
+            <LinearGradient
+              colors={gradients.primaryExtended}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.progressGradient}
+            />
+          </Animated.View>
+
+          <View style={[styles.milestone, styles.milestone25]}>
+            <View style={[styles.milestoneInner, progress >= 25 && styles.milestoneActive]} />
+          </View>
+          <View style={[styles.milestone, styles.milestone50]}>
+            <View style={[styles.milestoneInner, progress >= 50 && styles.milestoneActive]} />
+          </View>
+          <View style={[styles.milestone, styles.milestone75]}>
+            <View style={[styles.milestoneInner, progress >= 75 && styles.milestoneActive]} />
+          </View>
+        </View>
+
+        {pointsToNext > 0 && (
+          <View style={[styles.nextLevelInfo, { backgroundColor: `${theme.semantic.success}14` }]}>
+            <MaterialIcons name="trending-up" size={14} color={theme.semantic.success} />
+            <Text style={[styles.nextLevelText, { color: theme.semantic.success }]}>
+              {pointsToNext.toLocaleString()} XP to Level {level + 1}
+            </Text>
+          </View>
+        )}
+      </Animated.View>
+    </LinearGradient>
+  );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <View style={styles.levelBadge}>
-          <MaterialIcons name="stars" size={16} color="#ffffff" />
-          <Text style={styles.levelText}>{level}</Text>
-        </View>
-        <Text style={styles.points}>
-          {currentLevelPoints} / {nextLevelPoints} pts
-        </Text>
-      </View>
+    <>
+      <Animated.View entering={FadeIn.duration(500)} style={[styles.container, pressAnimatedStyle]}>
+        {onPress ? (
+          <Pressable onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
+            {content}
+          </Pressable>
+        ) : (
+          content
+        )}
+      </Animated.View>
 
-      <View style={styles.progressContainer}>
-        <View style={[styles.progressBar, { width: `${progress}%` }]} />
-
-        <View style={[styles.milestone, { left: '25%' }]} />
-        <View style={[styles.milestone, { left: '50%' }]} />
-        <View style={[styles.milestone, { left: '75%' }]} />
-
-        <View style={[styles.progressIndicator, { left: `${progress}%` }]}>
-          <MaterialIcons name="brightness-1" size={12} color="#FFD700" />
-        </View>
-      </View>
-
-      <View style={styles.labelRow}>
-        <Text style={styles.currentLevelLabel}>Level {level}</Text>
-        <Text style={styles.nextLevelLabel}>Level {level + 1}</Text>
-      </View>
-    </View>
+      <LevelUpCelebration
+        visible={showLevelUp}
+        newLevel={celebrationLevel}
+        onClose={() => setShowLevelUp(false)}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
     marginBottom: 16,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
   },
-  headerRow: {
+  card: {
+    borderRadius: 24,
+    padding: 20,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.03)',
+  },
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
+  },
+  levelInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   levelBadge: {
-    backgroundColor: '#007AFF',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  levelGradient: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
   },
-  levelText: {
-    color: 'white',
+  levelNumber: {
+    fontWeight: '800',
+    fontSize: 18,
+  },
+  levelTextContainer: {
+    gap: 2,
+  },
+  levelTitle: {
+    fontSize: 18,
     fontWeight: '700',
-    fontSize: 14,
+    letterSpacing: -0.3,
+  },
+  levelSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  pointsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pointsDisplay: {
+    alignItems: 'flex-end',
+  },
+  chevronContainer: {
     marginLeft: 4,
   },
-  points: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+  totalPoints: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
-  progressContainer: {
-    height: 8,
-    backgroundColor: '#E8E8E8',
-    borderRadius: 4,
-    marginVertical: 8,
+  pointsLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  progressSection: {
+    marginBottom: 0,
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  progressCurrent: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  progressTarget: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  progressTrack: {
+    height: 12,
+    borderRadius: 6,
     position: 'relative',
-    overflow: 'visible',
+    overflow: 'hidden',
+  },
+  progressGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#007AFF',
-    borderRadius: 4,
-    position: 'absolute',
-    left: 0,
-    top: 0,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  progressGradient: {
+    flex: 1,
   },
   milestone: {
     position: 'absolute',
     top: 0,
-    width: 2,
-    height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    zIndex: 2,
+    bottom: 0,
+    width: 4,
+    marginLeft: -2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  progressIndicator: {
-    position: 'absolute',
-    top: -2,
-    transform: [{ translateX: -6 }],
+  milestoneInner: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
-  labelRow: {
+  milestoneActive: {
+    backgroundColor: '#FFF',
+    shadowColor: '#FFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+  },
+  nextLevelInfo: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
   },
-  currentLevelLabel: {
-    fontSize: 12,
-    color: '#666',
+  nextLevelText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
-  nextLevelLabel: {
-    fontSize: 12,
-    color: '#666',
+  milestone25: {
+    left: '25%',
+  },
+  milestone50: {
+    left: '50%',
+  },
+  milestone75: {
+    left: '75%',
   },
 });

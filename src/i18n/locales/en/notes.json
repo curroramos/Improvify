@@ -1,0 +1,54 @@
+{
+  "create": {
+    "prompts": {
+      "highlight": "What was the highlight of your day?",
+      "challenge": "What challenged you today?",
+      "grateful": "What are you grateful for?",
+      "learned": "What did you learn today?",
+      "improve": "How will you improve tomorrow?"
+    },
+    "placeholder": "Type your answer...",
+    "saved": "Saved",
+    "update": "Update",
+    "done": "Done",
+    "next": "Next",
+    "swipeToSkip": "Swipe or tap to skip",
+    "discardDraft": {
+      "title": "Discard draft?",
+      "message": "Your draft will be saved automatically. You can continue later."
+    },
+    "errors": {
+      "empty": "Empty reflection",
+      "emptyMessage": "Please answer at least one question.",
+      "saveFailed": "Failed to save reflection. Please try again.",
+      "challengesFailed": "Your reflection was saved, but challenges could not be generated. You can try again later."
+    }
+  },
+  "saving": {
+    "title": "Saving reflection...",
+    "subtitle": "Storing your thoughts"
+  },
+  "generating": {
+    "title": "Generating challenges...",
+    "subtitle": "AI is creating personalized tasks",
+    "messages": {
+      "analyzing": "Analyzing your thoughts...",
+      "finding": "Finding growth opportunities...",
+      "crafting": "Crafting personalized challenges...",
+      "almostDone": "Almost there..."
+    }
+  },
+  "done": {
+    "title": "Done!",
+    "subtitle": "Your reflection is saved"
+  },
+  "emptyState": {
+    "title": "No reflections yet",
+    "subtitle": "Start your journey by creating your first note",
+    "action": "Create Note"
+  },
+  "search": {
+    "placeholder": "Search reflections...",
+    "noResults": "No notes found."
+  }
+}

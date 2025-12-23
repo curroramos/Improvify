@@ -1,0 +1,24 @@
+{
+  "title": "Desafío",
+  "complete": "Completar",
+  "completed": "Completado",
+  "dismiss": "Descartar",
+  "dueIn": "Vence en {{time}}",
+  "expired": "Expirado",
+  "points": "{{points}} pts",
+  "difficulty": {
+    "easy": "Fácil",
+    "medium": "Medio",
+    "hard": "Difícil"
+  },
+  "status": {
+    "pending": "Pendiente",
+    "completed": "Completado",
+    "dismissed": "Descartado",
+    "expired": "Expirado"
+  },
+  "empty": {
+    "title": "Sin desafíos",
+    "subtitle": "Crea una reflexión para obtener desafíos personalizados"
+  }
+}

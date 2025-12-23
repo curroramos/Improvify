@@ -1,118 +1,202 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  useColorScheme,
-  ActivityIndicator,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { QUOTES } from '../../constants/quotes';
-import Colors from '../../constants/Colors';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { getRandomQuote } from '../../constants/quotes';
+import { useTheme } from '@/theme';
 import ChallengeCard from '@/components/ChallengeCard';
-import { useFocusEffect } from '@react-navigation/native';
-import { useChallengeStore } from '@/lib/store/useChallengeStore';
+import WeeklyInsightButton from '@/components/WeeklyInsightButton';
+import { StreakCalendar } from '@/components/StreakCalendar';
+import { usePendingChallenges, useUserPreferences } from '@/lib/query';
+import { useAuth } from '@/hooks/useAuth';
+import { challengesRepository } from '@/lib/repositories';
+import type { ThemeId } from '@/config/themes';
+import { getCurrentLanguage } from '@/i18n';
+import { logger } from '@/lib/utils/logger';
+
+const getFormattedDate = (locale: string) =>
+  new Date().toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
 export default function HomeScreen() {
-  const router = useRouter();
-  const colorScheme = useColorScheme() as 'light' | 'dark';
-  const theme = Colors[colorScheme] || Colors.light;
+  const { theme, personalityThemeId, setPersonalityThemeId } = useTheme();
+  const { t } = useTranslation('home');
+  const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+  const { userId } = useAuth();
 
-  // Local state only for quotes/date (not challenges)
-  const [currentQuote, setCurrentQuote] = useState(QUOTES[0]);
-  const [currentDate, setCurrentDate] = useState('');
+  // Sync personality theme from DB on first load only
+  const { data: preferences } = useUserPreferences(userId ?? undefined);
+  const [hasInitializedTheme, setHasInitializedTheme] = useState(false);
 
-  // Zustand store state + actions
-  const {
-    challenges,
-    loading,
-    error,
-    fetchChallenges,
-  } = useChallengeStore();
-
-  // Set date + random quote on mount
   useEffect(() => {
-    const today = new Date();
-    setCurrentDate(
-      today.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    );
-    setRandomQuote();
-  }, []);
+    // Only sync from DB once on initial load, not on every change
+    if (!hasInitializedTheme && preferences?.theme_id) {
+      setPersonalityThemeId(preferences.theme_id as ThemeId);
+      setHasInitializedTheme(true);
+    }
+  }, [preferences?.theme_id, hasInitializedTheme, setPersonalityThemeId]);
 
-  const setRandomQuote = () => {
-    const randomIndex = Math.floor(Math.random() * QUOTES.length);
-    setCurrentQuote(QUOTES[randomIndex]);
-  };
+  // Quote counter to trigger new random quote on tap
+  const [quoteCounter, setQuoteCounter] = useState(0);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (challenges.length === 0) {
-        fetchChallenges();
-      }
-    }, [challenges.length, fetchChallenges])
+  // Derive quote from personalityThemeId and counter
+  const currentQuote = useMemo(
+    () => getRandomQuote(personalityThemeId),
+    [personalityThemeId, quoteCounter]
   );
 
+  // Derive date from current language
+  const currentDate = useMemo(
+    () => getFormattedDate(getCurrentLanguage()),
+    [t] // t changes when language changes
+  );
+
+  // React Query for challenges (automatic caching, refetching, deduplication)
+  const {
+    data: challenges = [],
+    isLoading: loading,
+    error,
+  } = usePendingChallenges(userId ?? undefined);
+
+  // Auto-cleanup challenges expired >24h on mount
+  useEffect(() => {
+    if (userId) {
+      challengesRepository.cleanupExpired(userId).catch((err) => logger.error('Cleanup error:', err));
+    }
+  }, [userId]);
+
+  const handleDismiss = useCallback(
+    async (challengeId: string) => {
+      try {
+        await challengesRepository.dismiss(challengeId);
+        queryClient.invalidateQueries({ queryKey: ['challenges'] });
+      } catch (err) {
+        logger.error('Failed to dismiss challenge:', err);
+      }
+    },
+    [queryClient]
+  );
+
+  const setRandomQuote = () => setQuoteCounter((c) => c + 1);
+
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={[styles.dateText, { color: theme.text }]}>{currentDate}</Text>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 100 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={[styles.dateText, { color: theme.text.primary }]}>{currentDate}</Text>
+
+        {/* Streak Calendar */}
+        {userId && <StreakCalendar userId={userId} />}
 
         {/* Quote Card (Tap to change quote) */}
-        <Pressable onPress={setRandomQuote} style={[styles.quoteCard, { backgroundColor: theme.card }]}>
-          <Text style={[styles.quoteText, { color: theme.text }]}>
+        <Pressable
+          onPress={setRandomQuote}
+          style={[styles.quoteCard, { backgroundColor: theme.surface.primary }]}
+        >
+          <Text style={[styles.quoteText, { color: theme.text.primary }]}>
             "{currentQuote.text}"
           </Text>
-          <Text style={[styles.quoteAuthor, { color: theme.textSecondary }]}>
+          <Text style={[styles.quoteAuthor, { color: theme.text.secondary }]}>
             – {currentQuote.author}
           </Text>
         </Pressable>
 
-        {/* Challenges Section */}
-        <View style={styles.challengeContainer}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Active Challenges</Text>
+        {/* Weekly Insights */}
+        <WeeklyInsightButton />
 
-          {loading ? (
-            <ActivityIndicator size="large" color={theme.primary.main} />
-          ) : error ? (
-            <Text style={[styles.errorText, { color: theme.primary.light }]}>{error}</Text>
-          ) : challenges.length === 0 ? (
-            <Text style={[styles.noChallengesText, { color: theme.textSecondary }]}>
-              No active challenges
-            </Text>
-          ) : (
-            challenges.map((challenge) => (
-              <ChallengeCard
-                key={challenge.id} // Required for React list rendering
-                id={challenge.id}  // Ensures navigation works correctly
-                noteId={challenge.note_id}
-                title={challenge.title}
-                description={challenge.description}
-                points={challenge.points}
-                completed={challenge.completed}
-              />
-            ))
-          )}
-        </View>
+        {/* Challenges Section */}
+        {(() => {
+          const now = new Date();
+          const activeChallenges = challenges.filter(
+            (c) => !c.due_date || new Date(c.due_date) > now
+          );
+          const expiredChallenges = challenges.filter(
+            (c) => c.due_date && new Date(c.due_date) <= now
+          );
+
+          return (
+            <>
+              <View style={styles.challengeContainer}>
+                <Text style={[styles.sectionTitle, { color: theme.text.primary }]}>
+                  {t('activeChallenges')}
+                </Text>
+
+                {loading ? (
+                  <ActivityIndicator size="large" color={theme.brand.primary} />
+                ) : error ? (
+                  <Text style={[styles.errorText, { color: theme.semantic.error }]}>
+                    {error.message}
+                  </Text>
+                ) : activeChallenges.length === 0 ? (
+                  <Text style={[styles.noChallengesText, { color: theme.text.secondary }]}>
+                    {t('noChallenges')}
+                  </Text>
+                ) : (
+                  activeChallenges.map((challenge) => (
+                    <ChallengeCard
+                      key={challenge.id}
+                      id={challenge.id}
+                      noteId={challenge.note_id}
+                      title={challenge.title}
+                      description={challenge.description}
+                      points={challenge.points}
+                      category={challenge.category}
+                      completed={challenge.completed}
+                      createdAt={challenge.created_at}
+                      dueDate={challenge.due_date}
+                      onDismiss={handleDismiss}
+                    />
+                  ))
+                )}
+              </View>
+
+              {expiredChallenges.length > 0 && (
+                <View style={styles.expiredContainer}>
+                  <Text style={[styles.expiredTitle, { color: theme.text.tertiary }]}>
+                    {t('expired')}
+                  </Text>
+                  {expiredChallenges.map((challenge) => (
+                    <ChallengeCard
+                      key={challenge.id}
+                      id={challenge.id}
+                      noteId={challenge.note_id}
+                      title={challenge.title}
+                      description={challenge.description}
+                      points={challenge.points}
+                      category={challenge.category}
+                      completed={challenge.completed}
+                      createdAt={challenge.created_at}
+                      dueDate={challenge.due_date}
+                      onDismiss={handleDismiss}
+                    />
+                  ))}
+                </View>
+              )}
+            </>
+          );
+        })()}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
   },
   scrollContainer: {
-    padding: 24,
-    paddingTop: 48,
+    paddingHorizontal: 24,
   },
   dateText: {
     fontSize: 20,
@@ -158,5 +242,16 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  expiredContainer: {
+    marginTop: 24,
+    opacity: 0.7,
+  },
+  expiredTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

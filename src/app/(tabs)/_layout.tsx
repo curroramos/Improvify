@@ -1,82 +1,71 @@
-import { Tabs, Link } from 'expo-router';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
-import { View, StyleSheet, Pressable } from 'react-native';
-import React from 'react';
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import { useRouter } from 'expo-router';
+import { DailyCreateButton } from '@/components/DailyCreateButton';
+import { useTheme } from '@/theme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { theme, isDark } = useTheme();
 
   return (
-    <>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarShowLabel: false,
-          tabBarStyle: {
-            backgroundColor: theme.background,
-            borderTopWidth: 0,
-            elevation: 0,
-            height: 70,
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: theme.brand.primary,
+        tabBarInactiveTintColor: theme.text.tertiary,
+        tabBarStyle: {
+          position: 'absolute',
+          backgroundColor: Platform.OS === 'ios' ? 'transparent' : theme.surface.primary,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: theme.border.secondary,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom,
+        },
+        tabBarBackground: () =>
+          Platform.OS === 'ios' ? (
+            <BlurView
+              intensity={90}
+              tint={isDark ? 'dark' : 'light'}
+              style={StyleSheet.absoluteFill}
+            />
+          ) : null,
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={26} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="create"
+        options={{
+          title: '',
+          tabBarIcon: () => <DailyCreateButton onPress={() => router.push('/notes/create')} />,
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
           },
         }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color }) => (
-              <FontAwesome name="home" size={24} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: 'Profile',
-            tabBarIcon: ({ color }) => (
-              <FontAwesome name="user" size={24} color={color} />
-            ),
-          }}
-        />
-      </Tabs>
-
-      {/* FAB floating above tabs */}
-      <View style={styles.fabContainer} pointerEvents="box-none">
-        <Link href="/notes/create" asChild>
-          <Pressable style={styles.fab}>
-            <MaterialIcons name="edit" size={28} color="#fff" />
-          </Pressable>
-        </Link>
-      </View>
-    </>
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={26} color={color} />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  fabContainer: {
-    position: 'absolute',
-    bottom: 32,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    pointerEvents: 'box-none',
-  },
-  fab: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#007aff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 8,
-  },
-});

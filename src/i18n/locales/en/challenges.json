@@ -1,0 +1,24 @@
+{
+  "title": "Challenge",
+  "complete": "Complete",
+  "completed": "Completed",
+  "dismiss": "Dismiss",
+  "dueIn": "Due in {{time}}",
+  "expired": "Expired",
+  "points": "{{points}} pts",
+  "difficulty": {
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard"
+  },
+  "status": {
+    "pending": "Pending",
+    "completed": "Completed",
+    "dismissed": "Dismissed",
+    "expired": "Expired"
+  },
+  "empty": {
+    "title": "No challenges",
+    "subtitle": "Create a reflection to get personalized challenges"
+  }
+}

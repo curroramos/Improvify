@@ -1,0 +1,16 @@
+{
+  "tabs": {
+    "progress": "progreso",
+    "reflections": "reflexiones"
+  },
+  "avatar": {
+    "choose": "Elegir avatar",
+    "photoLibrary": "Biblioteca de fotos",
+    "takePhoto": "Tomar foto",
+    "cancel": "Cancelar"
+  },
+  "search": {
+    "placeholder": "Buscar reflexiones...",
+    "noResults": "No se encontraron notas."
+  }
+}

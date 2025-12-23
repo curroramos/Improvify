@@ -1,0 +1,29 @@
+{
+  "title": "Progress",
+  "level": "Level {{level}}",
+  "points": "{{points}} points",
+  "pointsToNext": "{{points}} points to next level",
+  "streak": {
+    "title": "Current Streak",
+    "days": "{{count}} day",
+    "days_plural": "{{count}} days",
+    "best": "Best: {{count}} days"
+  },
+  "weeklyInsights": {
+    "title": "Weekly Insights",
+    "generate": "Generate Insights",
+    "generating": "Generating...",
+    "noInsights": "Generate your first weekly insights to see patterns in your journey",
+    "daysUntilNext": "Next insights in {{days}} days",
+    "viewAll": "View All"
+  },
+  "lifeBalance": {
+    "title": "Life Balance",
+    "viewDetails": "View Details"
+  },
+  "stats": {
+    "totalReflections": "Total Reflections",
+    "challengesCompleted": "Challenges Completed",
+    "currentStreak": "Current Streak"
+  }
+}

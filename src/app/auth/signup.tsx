@@ -1,394 +1,364 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link, router } from 'expo-router';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  Pressable, 
-  StyleSheet, 
-  Alert, 
-  ScrollView, 
-  Keyboard,
-  TouchableWithoutFeedback,
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  KeyboardAvoidingView,
   Platform,
-  Image,
+  ActivityIndicator,
+  ScrollView,
+  Alert,
+  Linking,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { BlurView } from 'expo-blur';
-import { supabase } from '../../lib/supabase';
-import Colors from '../../constants/Colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { createUserRecord } from '../../lib/api/user';
+import { useTranslation } from 'react-i18next';
+import { supabase } from '@/lib/supabase';
+
+const TERMS_URL =
+  'https://pie-trick-820.notion.site/Terms-of-Service-2d1847dece6880478f1aebed7737671d';
+const PRIVACY_URL =
+  'https://pie-trick-820.notion.site/Privacy-Policy-2d1847dece68804c86e2ce5a5eff52ad';
 
 export default function SignupScreen() {
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation('auth');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
-  // Handle email/password signup
-  const handleSignup = async () => {
+  const handleSignup = useCallback(async () => {
+    if (!name || !email || !password) {
+      setError(t('signup.errors.fillAllFields'));
+      return;
+    }
+    if (password.length < 8) {
+      setError(t('signup.errors.passwordMinLength'));
+      return;
+    }
     setError('');
-    
-    // Input validation
-    if (!name || !email || !password || !confirmPassword) {
-      setError('Please fill in all fields');
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-    
     setLoading(true);
-    
+
     try {
-      const { data, error } = await supabase.auth.signUp({ 
-        email, 
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
-        options: {
-          data: {
-            full_name: name,
-          }
-        }
+        options: { data: { full_name: name.trim() } },
       });
-      
-      if (error) {
-        throw error;
-      }
-      
+      if (authError) throw authError;
+
       if (data.user) {
-        // Create user record in the users table
-        await createUserRecord(data.user.id, {
-          full_name: name,
-          email: email
-        });
-        
-        Alert.alert(
-          'Sign Up Successful', 
-          'Please check your email for verification instructions.',
-          [{ text: 'OK', onPress: () => router.push('/auth/login') }]
-        );
+        Alert.alert(t('signup.checkEmail.title'), t('signup.checkEmail.message'), [
+          { text: 'OK', onPress: () => router.push('/auth/login') },
+        ]);
       }
-    } catch (error: any) {
-      console.error('Error during signup:', error);
-      setError(error.message || 'Failed to create account');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('signup.errors.createFailed'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [name, email, password, t]);
 
   return (
-    <>
-      <StatusBar style="light" />
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={styles.container}>
-          <LinearGradient
-            colors={['#4F46E5', '#7C3AED']} 
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradient}
-          />
-          
-          <ScrollView 
-            style={styles.scrollView}
-            keyboardDismissMode="on-drag"
-            contentContainerStyle={styles.contentContainer}
-          >
-            <View style={styles.headerContainer}>
-              <Image 
-                source={require('../../../assets/logo.png')} 
-                style={styles.logo} 
-                resizeMode="contain"
-              />
-              <Text style={styles.title}>Join Improvify</Text>
-              <Text style={styles.subtitle}>
-                Create an account and start your personal growth journey
-              </Text>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar style="dark" />
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Back Button */}
+          <Link href="/auth/login" asChild>
+            <Pressable style={styles.backButton} hitSlop={12}>
+              <MaterialIcons name="arrow-back" size={24} color="#374151" />
+            </Pressable>
+          </Link>
+
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.iconContainer}>
+              <MaterialIcons name="person-add" size={32} color="#6366F1" />
             </View>
-            
-            <BlurView intensity={20} tint="light" style={styles.formContainer}>
-              {/* Name Input */}
-              <View style={styles.inputContainer}>
-                <MaterialIcons name="person" size={20} color={Colors.light.primary.main} style={styles.inputIcon} />
+            <Text style={styles.title}>{t('signup.title')}</Text>
+            <Text style={styles.subtitle}>{t('signup.subtitle')}</Text>
+          </View>
+
+          {/* Form */}
+          <View style={styles.form}>
+            {/* Name */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('signup.nameLabel')}</Text>
+              <View style={styles.inputWrapper}>
+                <MaterialIcons
+                  name="person-outline"
+                  size={20}
+                  color="#9CA3AF"
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.input}
-                  placeholder="Full Name"
+                  placeholder={t('signup.namePlaceholder')}
+                  placeholderTextColor="#9CA3AF"
                   value={name}
                   onChangeText={setName}
-                  placeholderTextColor={Colors.light.textSecondary}
+                  autoCapitalize="words"
+                  autoComplete="name"
                 />
               </View>
-              
-              {/* Email Input */}
-              <View style={styles.inputContainer}>
-                <MaterialIcons name="email" size={20} color={Colors.light.primary.main} style={styles.inputIcon} />
+            </View>
+
+            {/* Email */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('signup.emailLabel')}</Text>
+              <View style={styles.inputWrapper}>
+                <MaterialIcons
+                  name="mail-outline"
+                  size={20}
+                  color="#9CA3AF"
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.input}
-                  placeholder="Email"
+                  placeholder={t('signup.emailPlaceholder')}
+                  placeholderTextColor="#9CA3AF"
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
                   keyboardType="email-address"
-                  placeholderTextColor={Colors.light.textSecondary}
+                  autoComplete="email"
+                  autoCorrect={false}
                 />
               </View>
-              
-              {/* Password Input */}
-              <View style={styles.inputContainer}>
-                <MaterialIcons name="lock" size={20} color={Colors.light.primary.main} style={styles.inputIcon} />
+            </View>
+
+            {/* Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('signup.passwordLabel')}</Text>
+              <View style={styles.inputWrapper}>
+                <MaterialIcons
+                  name="lock-outline"
+                  size={20}
+                  color="#9CA3AF"
+                  style={styles.inputIcon}
+                />
                 <TextInput
-                  style={[styles.input, styles.passwordInput]}
-                  placeholder="Password"
-                  secureTextEntry={!showPassword}
+                  style={styles.input}
+                  placeholder={t('signup.passwordPlaceholder')}
+                  placeholderTextColor="#9CA3AF"
                   value={password}
                   onChangeText={setPassword}
-                  placeholderTextColor={Colors.light.textSecondary}
+                  secureTextEntry={!showPassword}
+                  autoComplete="new-password"
                 />
-                <Pressable 
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <MaterialIcons 
-                    name={showPassword ? "visibility" : "visibility-off"} 
-                    size={20} 
-                    color={Colors.light.textSecondary} 
+                <Pressable onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+                  <MaterialIcons
+                    name={showPassword ? 'visibility' : 'visibility-off'}
+                    size={20}
+                    color="#9CA3AF"
                   />
                 </Pressable>
               </View>
-              
-              {/* Confirm Password Input */}
-              <View style={styles.inputContainer}>
-                <MaterialIcons name="lock" size={20} color={Colors.light.primary.main} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, styles.passwordInput]}
-                  placeholder="Confirm Password"
-                  secureTextEntry={!showPassword}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  placeholderTextColor={Colors.light.textSecondary}
-                />
-              </View>
-              
-              {/* Error Message */}
-              {error ? <Text style={styles.error}>{error}</Text> : null}
-
-              {/* Sign Up Button */}
-              <LinearGradient
-                colors={['#4F46E5', '#7C3AED']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.gradientButton, loading && styles.disabled]}
-              >
-                <Pressable 
-                  style={styles.button}
-                  onPress={handleSignup}
-                  disabled={loading}
-                  android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
-                >
-                  <Text style={styles.buttonText}>
-                    {loading ? 'Creating Account...' : 'Create Account'}
-                  </Text>
-                </Pressable>
-              </LinearGradient>
-
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* Login Link */}
-              <Link href="/auth/login" asChild>
-                <Pressable style={styles.link}>
-                  <Text style={styles.linkText}>
-                    Already have an account? <Text style={styles.linkTextBold}>Sign In</Text>
-                  </Text>
-                </Pressable>
-              </Link>
-            </BlurView>
-            
-            <View style={styles.termsContainer}>
-              <Text style={styles.termsText}>
-                By signing up, you agree to our{' '}
-                <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-                <Text style={styles.termsLink}>Privacy Policy</Text>
-              </Text>
             </View>
-          </ScrollView>
-        </View>
-      </TouchableWithoutFeedback>
-    </>
+
+            {/* Error */}
+            {error ? (
+              <View style={styles.errorBox}>
+                <MaterialIcons name="error-outline" size={16} color="#DC2626" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            {/* Sign Up Button */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.primaryButton,
+                pressed && styles.primaryButtonPressed,
+                loading && styles.primaryButtonDisabled,
+              ]}
+              onPress={handleSignup}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <Text style={styles.primaryButtonText}>{t('signup.createButton')}</Text>
+              )}
+            </Pressable>
+
+            {/* Terms */}
+            <Text style={styles.terms}>
+              {t('signup.terms')}{' '}
+              <Text style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>
+                {t('signup.termsLink')}
+              </Text>{' '}
+              {t('signup.and')}{' '}
+              <Text style={styles.termsLink} onPress={() => Linking.openURL(PRIVACY_URL)}>
+                {t('signup.privacyLink')}
+              </Text>
+            </Text>
+          </View>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>{t('signup.hasAccount')}</Text>
+            <Link href="/auth/login" asChild>
+              <Pressable hitSlop={8}>
+                <Text style={styles.footerLink}>{t('signup.signInLink')}</Text>
+              </Pressable>
+            </Link>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Bottom safe area */}
+      <View style={{ height: insets.bottom + 16 }} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#FAFAFA',
   },
-  gradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    height: '100%',
-  },
-  scrollView: {
+  keyboardView: {
     flex: 1,
   },
-  contentContainer: {
+  scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 40,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
-  headerContainer: {
-    marginBottom: 30,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
-  logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 16,
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  iconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 12,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    maxWidth: 300,
+    color: '#6B7280',
   },
-  formContainer: {
-    borderRadius: 20,
-    padding: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
-    marginBottom: 24,
+  form: {
+    gap: 20,
   },
-  inputContainer: {
-    marginBottom: 16,
+  inputGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 52,
   },
   inputIcon: {
-    padding: 12,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    height: 50,
     fontSize: 16,
-    color: Colors.light.text,
-    paddingRight: 12,
+    color: '#111827',
   },
-  passwordInput: {
-    paddingRight: 50, // Space for eye icon
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 12,
-    height: '100%',
-    justifyContent: 'center',
-    padding: 8,
-  },
-  gradientButton: {
-    borderRadius: 12,
-    marginVertical: 16,
-    overflow: 'hidden',
-  },
-  button: {
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  divider: {
+  errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 16,
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
+    padding: 12,
   },
-  dividerLine: {
+  errorText: {
     flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    fontSize: 14,
+    color: '#DC2626',
   },
-  dividerText: {
-    color: '#FFFFFF',
-    paddingHorizontal: 16,
-    fontWeight: '600',
-  },
-  googleButton: {
-    flexDirection: 'row',
+  primaryButton: {
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#DB4437',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    marginTop: 8,
   },
-  googleIcon: {
-    marginRight: 10,
+  primaryButtonPressed: {
+    backgroundColor: '#4F46E5',
   },
-  googleButtonText: {
-    color: '#FFFFFF',
+  primaryButtonDisabled: {
+    opacity: 0.7,
+  },
+  primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  link: {
-    alignSelf: 'center',
-    padding: 8,
-  },
-  linkText: {
     color: '#FFFFFF',
+  },
+  terms: {
+    fontSize: 13,
+    color: '#6B7280',
     textAlign: 'center',
-    fontSize: 16,
-  },
-  linkTextBold: {
-    fontWeight: 'bold',
-  },
-  error: {
-    color: '#FF6B6B',
-    marginTop: 8,
-    textAlign: 'center',
-    fontSize: 14,
-  },
-  disabled: {
-    opacity: 0.6,
-  },
-  termsContainer: {
-    marginTop: 16,
-  },
-  termsText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 12,
-    textAlign: 'center',
+    lineHeight: 20,
   },
   termsLink: {
-    fontWeight: 'bold',
-    textDecorationLine: 'underline',
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 32,
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  footerLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
   },
 });

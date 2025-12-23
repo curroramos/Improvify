@@ -1,186 +1,106 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  StatusBar,
-  Modal,
-  TextInput,
-  TouchableWithoutFeedback,
-  Keyboard
-} from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, SafeAreaView, StatusBar, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../../hooks/useAuth';
-import { useUserStore } from '../../lib/store/useUserStore';
-import Colors from '../../constants/Colors';
-import { useColorScheme } from '../../components/useColorScheme';
-import { updateUser } from '../../lib/api/user';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/theme';
+import { SettingsSection, SettingsRow } from '@/components/settings';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { t } = useTranslation('settings');
   const { signOut } = useAuth();
-  const { user, fetchUser } = useUserStore();
-  const colorScheme = useColorScheme() as 'light' | 'dark';
-  const theme = Colors[colorScheme] || Colors.light;
-  
-  // State for modal visibility and form values
-  const [profileModalVisible, setProfileModalVisible] = useState(false);
-  const [fullName, setFullName] = useState(user?.full_name || '');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { theme, isDark } = useTheme();
 
   const handleLogout = async () => {
     try {
-      await signOut();
-      await AsyncStorage.removeItem('hasOnboarded');
-      router.replace('/auth/login');
-    } catch (error) {
-      console.error('Error during logout:', error);
-    }
-  };
-  
-  const handleUpdateProfile = async () => {
-    if (!user?.id || !fullName.trim()) return;
-    
-    setIsSubmitting(true);
-    try {
-      await updateUser(user.id, {
-        full_name: fullName.trim(),
-      });
-      fetchUser(user.id); // Refetch user data to update the UI
-      setProfileModalVisible(false);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-    } finally {
-      setIsSubmitting(false);
+      const result = await signOut();
+      if (!result.success) {
+        Alert.alert(t('account.logoutError'));
+      }
+    } catch {
+      // Logout failed silently - user can try again
     }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      <View style={styles.content}>
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Account</Text>
-          
-          <TouchableOpacity 
-            style={[styles.option, { backgroundColor: theme.card }]} 
-            onPress={() => setProfileModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.optionText, { color: theme.text }]}>Edit Profile Information</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.option, { backgroundColor: theme.card }]} 
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Preferences */}
+        <SettingsSection title={t('sections.preferences')}>
+          <SettingsRow
+            icon="language"
+            label={t('preferences.language')}
+            onPress={() => router.push('/settings/language')}
+            showChevron
+          />
+          <SettingsRow
+            icon="edit-note"
+            label={t('preferences.prompts')}
+            onPress={() => router.push('/settings/prompts')}
+            showChevron
+          />
+          <SettingsRow
+            icon="palette"
+            label={t('preferences.appearance')}
+            onPress={() => router.push('/settings/appearance')}
+            showChevron
+          />
+          <SettingsRow
+            icon="notifications"
+            label={t('preferences.notifications')}
+            onPress={() => router.push('/settings/notifications')}
+            showChevron
+          />
+        </SettingsSection>
+
+        {/* Account */}
+        <SettingsSection title={t('sections.account')}>
+          <SettingsRow
+            icon="person"
+            label={t('account.editProfile')}
+            onPress={() => router.push('/settings/profile')}
+            showChevron
+          />
+          <SettingsRow
+            icon="logout"
+            label={t('account.logout')}
             onPress={handleLogout}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.optionText, { color: theme.text }]}>Log Out</Text>
-          </TouchableOpacity>
+          />
+        </SettingsSection>
+
+        {/* Support */}
+        <SettingsSection title={t('sections.support')}>
+          <SettingsRow
+            icon="info"
+            label={t('support.about')}
+            onPress={() => router.push('/settings/about')}
+            showChevron
+          />
+        </SettingsSection>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={[styles.version, { color: theme.text.tertiary }]}>Improvify v1.0.0</Text>
         </View>
-      </View>
-
-      {/* Profile Edit Modal */}
-      <Modal
-        visible={profileModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setProfileModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Profile</Text>
-              
-              {/* Field with label */}
-              <View style={styles.fieldContainer}>
-                <Text style={[styles.fieldLabel, { color: theme.text }]}>User Name:</Text>
-                <TextInput
-                  style={[styles.input, { 
-                    backgroundColor: theme.background,
-                    color: theme.text,
-                    borderColor: theme.border
-                  }]}
-                  placeholder="Full Name"
-                  placeholderTextColor={theme.textSecondary}
-                  value={fullName}
-                  onChangeText={setFullName}
-                />
-              </View>
-              
-              {/* Add additional fields in the future using the same pattern */}
-              
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setProfileModalVisible(false)}
-                  disabled={isSubmitting}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.saveButton]}
-                  onPress={handleUpdateProfile}
-                  disabled={isSubmitting}
-                >
-                  <Text style={styles.saveButtonText}>
-                    {isSubmitting ? 'Saving...' : 'Save Changes'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      <View style={styles.footer}>
-        <Text style={[styles.version, { color: theme.textSecondary }]}>Improvify v1.0.0</Text>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
-
-// Optional: Configure native header title
-export const unstable_settings = {
-  // Set screen title
-  title: 'Settings',
-};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
-  },
-  section: {
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 15,
-  },
-  option: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  optionText: {
-    fontSize: 16,
-    fontWeight: '500',
+    paddingBottom: 40,
   },
   footer: {
     padding: 20,
@@ -188,72 +108,5 @@ const styles = StyleSheet.create({
   },
   version: {
     fontSize: 14,
-  },
-  
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    width: '85%',
-    borderRadius: 16,
-    padding: 24,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f0f0f0',
-    marginRight: 8,
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-    marginLeft: 8,
-  },
-  cancelButtonText: {
-    color: '#333',
-    fontWeight: '600',
-  },
-  saveButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  fieldContainer: {
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 8,
   },
 });

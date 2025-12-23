@@ -1,0 +1,21 @@
+{
+  "slides": {
+    "welcome": {
+      "title": "Bienvenido a\nImprovify",
+      "subtitle": "TU CAMINO DE CRECIMIENTO COMIENZA AQUÍ",
+      "description": "Transforma tus reflexiones diarias en crecimiento personal medible con insights impulsados por IA."
+    },
+    "challenges": {
+      "title": "Desafíos\nDiarios",
+      "subtitle": "PERSONALIZADOS PARA TUS METAS",
+      "description": "Recibe 3 desafíos personalizados cada día diseñados para superar tus límites y crear hábitos duraderos."
+    },
+    "progress": {
+      "title": "Rastrea Tu\nProgreso",
+      "subtitle": "VISUALIZA TU TRANSFORMACIÓN",
+      "description": "Análisis e insights hermosos te ayudan a entender tus patrones de crecimiento y celebrar tus logros."
+    }
+  },
+  "skip": "Omitir",
+  "getStarted": "Comenzar"
+}

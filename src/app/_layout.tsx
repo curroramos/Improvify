@@ -1,78 +1,122 @@
+import '../global.css';
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { useAuth } from '../hooks/useAuth';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Colors from '../constants/Colors';
-import { useColorScheme } from '../components/useColorScheme';
+import { View, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
+import { ThemeProvider, useTheme } from '@/theme';
 import { useOnboardingStore } from '../lib/store/onboarding';
+import { useAppearanceStore } from '../lib/store/useAppearanceStore';
+import { usePersonalityThemeStore } from '../lib/store/usePersonalityThemeStore';
+import { QueryProvider } from '../lib/query';
+import { initI18n } from '@/i18n';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-export default function RootLayout() {
-  const { session, loading: authLoading } = useAuth();
-  const { hasOnboarded } = useOnboardingStore();
-  const [hydrated, setHydrated] = useState(false);
-  const router = useRouter();
+// Suppress react-native-render-html defaultProps warnings (library issue)
+LogBox.ignoreLogs([
+  'MemoizedTNodeRenderer: Support for defaultProps',
+  'TNodeChildrenRenderer: Support for defaultProps',
+]);
 
-  const colorScheme = useColorScheme() as 'light' | 'dark';
-  const theme = Colors[colorScheme] || Colors.light;
+// Helper to check store hydration status
+const getStoreHydrated = (store: unknown): boolean => {
+  const s = store as { persist?: { hasHydrated?: () => boolean } };
+  return s.persist?.hasHydrated?.() ?? true;
+};
+
+// Hook to subscribe to hydration state
+function useStoreHydration() {
+  const [hydrated, setHydrated] = useState(() =>
+    getStoreHydrated(useOnboardingStore) &&
+    getStoreHydrated(useAppearanceStore) &&
+    getStoreHydrated(usePersonalityThemeStore)
+  );
 
   useEffect(() => {
-    const store = useOnboardingStore as typeof useOnboardingStore & {
-      persist?: {
-        hasHydrated?: () => boolean;
-        onFinishHydration?: (cb: () => void) => () => void;
-      };
+    if (hydrated) return;
+
+    const checkHydration = () => {
+      if (
+        getStoreHydrated(useOnboardingStore) &&
+        getStoreHydrated(useAppearanceStore) &&
+        getStoreHydrated(usePersonalityThemeStore)
+      ) {
+        setHydrated(true);
+      }
     };
 
-    const unsub = store.persist?.onFinishHydration?.(() => {
-      setHydrated(true);
-    });
+    // Check immediately and set up listeners
+    checkHydration();
 
-    if (store.persist?.hasHydrated?.()) {
-      setHydrated(true);
-    }
+    const onboardingUnsub = (useOnboardingStore as any).persist?.onFinishHydration?.(checkHydration);
+    const appearanceUnsub = (useAppearanceStore as any).persist?.onFinishHydration?.(checkHydration);
+    const personalityUnsub = (usePersonalityThemeStore as any).persist?.onFinishHydration?.(checkHydration);
 
     return () => {
-      if (typeof unsub === 'function') unsub();
+      onboardingUnsub?.();
+      appearanceUnsub?.();
+      personalityUnsub?.();
     };
+  }, [hydrated]);
+
+  return hydrated;
+}
+
+function RootLayoutContent() {
+  const { session, loading: authLoading } = useAuth();
+  const { hasOnboarded } = useOnboardingStore();
+  const hydrated = useStoreHydration();
+  const [i18nReady, setI18nReady] = useState(false);
+  const router = useRouter();
+  const { theme } = useTheme();
+
+  // Initialize i18n (must be async, can't avoid this effect)
+  useEffect(() => {
+    initI18n().then(() => setI18nReady(true));
   }, []);
 
+  // Navigation effect (must be in effect due to router timing)
   useEffect(() => {
-    if (!authLoading && hydrated) {
+    if (!authLoading && hydrated && i18nReady) {
       if (!session) {
         router.replace(hasOnboarded ? '/auth/login' : '/onboarding');
       } else {
         router.replace('/(tabs)');
       }
     }
-  }, [authLoading, hydrated, session, hasOnboarded]);
+  }, [authLoading, hydrated, i18nReady, session, hasOnboarded, router]);
 
-  if (authLoading || !hydrated) {
+  if (authLoading || !hydrated || !i18nReady) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-        <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color={theme.primary.main} />
-        </View>
-      </SafeAreaView>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background.primary }]}>
+        <ActivityIndicator size="large" color={theme.brand.primary} />
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="auth/login" />
-        <Stack.Screen name="auth/signup" />
-      </Stack>
-    </SafeAreaView>
+    <QueryProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.background.primary },
+        }}
+      />
+    </QueryProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ErrorBoundary>
+      <ThemeProvider>
+        <RootLayoutContent />
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  loadingContainer: { flex: 1 },
-  loadingContent: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

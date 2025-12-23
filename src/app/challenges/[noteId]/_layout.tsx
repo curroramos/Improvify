@@ -9,9 +9,7 @@ export default function Layout() {
     <Stack
       screenOptions={{
         headerShown: true,
-        headerLeft: () => (
-          <HeaderBackButton onPress={() => router.back()} />
-        ),
+        headerLeft: () => <HeaderBackButton onPress={() => router.back()} />,
       }}
     />
   );

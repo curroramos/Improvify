@@ -1,0 +1,54 @@
+{
+  "create": {
+    "prompts": {
+      "highlight": "¿Cuál fue el mejor momento de tu día?",
+      "challenge": "¿Qué te desafió hoy?",
+      "grateful": "¿Por qué estás agradecido?",
+      "learned": "¿Qué aprendiste hoy?",
+      "improve": "¿Cómo mejorarás mañana?"
+    },
+    "placeholder": "Escribe tu respuesta...",
+    "saved": "Guardado",
+    "update": "Actualizar",
+    "done": "Listo",
+    "next": "Siguiente",
+    "swipeToSkip": "Desliza o toca para omitir",
+    "discardDraft": {
+      "title": "¿Descartar borrador?",
+      "message": "Tu borrador se guardará automáticamente. Puedes continuar después."
+    },
+    "errors": {
+      "empty": "Reflexión vacía",
+      "emptyMessage": "Por favor, responde al menos una pregunta.",
+      "saveFailed": "No se pudo guardar la reflexión. Por favor, inténtalo de nuevo.",
+      "challengesFailed": "Tu reflexión fue guardada, pero no se pudieron generar los desafíos. Puedes intentarlo más tarde."
+    }
+  },
+  "saving": {
+    "title": "Guardando reflexión...",
+    "subtitle": "Almacenando tus pensamientos"
+  },
+  "generating": {
+    "title": "Generando desafíos...",
+    "subtitle": "La IA está creando tareas personalizadas",
+    "messages": {
+      "analyzing": "Analizando tus pensamientos...",
+      "finding": "Buscando oportunidades de crecimiento...",
+      "crafting": "Creando desafíos personalizados...",
+      "almostDone": "Casi listo..."
+    }
+  },
+  "done": {
+    "title": "¡Listo!",
+    "subtitle": "Tu reflexión está guardada"
+  },
+  "emptyState": {
+    "title": "Sin reflexiones aún",
+    "subtitle": "Comienza tu camino creando tu primera nota",
+    "action": "Crear nota"
+  },
+  "search": {
+    "placeholder": "Buscar reflexiones...",
+    "noResults": "No se encontraron notas."
+  }
+}

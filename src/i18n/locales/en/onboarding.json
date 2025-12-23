@@ -1,0 +1,21 @@
+{
+  "slides": {
+    "welcome": {
+      "title": "Welcome to\nImprovify",
+      "subtitle": "YOUR GROWTH JOURNEY STARTS HERE",
+      "description": "Transform your daily reflections into measurable personal growth with AI-powered insights."
+    },
+    "challenges": {
+      "title": "Daily\nChallenges",
+      "subtitle": "PERSONALIZED FOR YOUR GOALS",
+      "description": "Receive 3 tailored challenges every day designed to push your boundaries and build lasting habits."
+    },
+    "progress": {
+      "title": "Track Your\nProgress",
+      "subtitle": "VISUALIZE YOUR TRANSFORMATION",
+      "description": "Beautiful analytics and insights help you understand your growth patterns and celebrate wins."
+    }
+  },
+  "skip": "Skip",
+  "getStarted": "Get Started"
+}

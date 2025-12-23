@@ -1,0 +1,52 @@
+{
+  "buttons": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "done": "Listo",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "continue": "Continuar",
+    "skip": "Omitir",
+    "retry": "Reintentar",
+    "ok": "OK",
+    "yes": "Sí",
+    "no": "No",
+    "leave": "Salir",
+    "keepEditing": "Seguir editando",
+    "getStarted": "Comenzar"
+  },
+  "loading": "Cargando...",
+  "saving": "Guardando...",
+  "error": "Error",
+  "success": "Éxito",
+  "warning": "Advertencia",
+  "user": "Usuario",
+  "version": "Improvify v{{version}}",
+  "errors": {
+    "generic": "Ocurrió un error",
+    "network": "Error de red. Por favor, inténtalo de nuevo.",
+    "unauthorized": "Por favor, inicia sesión primero.",
+    "notFound": "No encontrado",
+    "tryAgain": "Por favor, inténtalo de nuevo."
+  },
+  "permissions": {
+    "required": "Permiso requerido",
+    "photoLibrary": "Por favor, permite el acceso a tu biblioteca de fotos para subir un avatar."
+  },
+  "upload": {
+    "failed": "Error al subir",
+    "failedMessage": "No se pudo subir el avatar. Por favor, inténtalo de nuevo."
+  },
+  "empty": {
+    "noData": "No hay datos disponibles"
+  },
+  "dates": {
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "expired": "Expirado"
+  }
+}

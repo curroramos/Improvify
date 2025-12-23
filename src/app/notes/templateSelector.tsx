@@ -14,7 +14,7 @@ const templates = [
 📚 **What did you learn today?**
 
 🔧 **How will you improve tomorrow?**
-`
+`,
   },
   {
     title: 'Goal Setting',
@@ -27,7 +27,7 @@ const templates = [
 ⏰ **Timeline / Deadline:**
 
 ✅ **How will you measure success?**
-`
+`,
   },
   {
     title: 'None',
@@ -41,7 +41,7 @@ export default function TemplateSelectorScreen() {
   const handleSelectTemplate = (templateContent: string) => {
     // Pass the chosen template content back to our CreateNoteScreen
     router.push({
-      pathname: '../notes',  // <-- Adjust path if needed
+      pathname: '../notes', // <-- Adjust path if needed
       params: { content: templateContent },
     });
   };
@@ -53,10 +53,7 @@ export default function TemplateSelectorScreen() {
         <Pressable
           key={index}
           onPress={() => handleSelectTemplate(template.content)}
-          style={({ pressed }) => [
-            styles.templateButton,
-            pressed && { opacity: 0.7 },
-          ]}
+          style={({ pressed }) => [styles.templateButton, pressed && { opacity: 0.7 }]}
         >
           <Text style={styles.templateButtonText}>{template.title}</Text>
         </Pressable>

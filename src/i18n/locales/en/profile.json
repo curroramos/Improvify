@@ -1,0 +1,16 @@
+{
+  "tabs": {
+    "progress": "progress",
+    "reflections": "reflections"
+  },
+  "avatar": {
+    "choose": "Choose Avatar",
+    "photoLibrary": "Photo Library",
+    "takePhoto": "Take Photo",
+    "cancel": "Cancel"
+  },
+  "search": {
+    "placeholder": "Search reflections...",
+    "noResults": "No notes found."
+  }
+}

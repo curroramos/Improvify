@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "Improvify",
-    "slug": "Improvify",
+    "slug": "improvify",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "improvify",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -14,13 +14,20 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.improvify.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Improvify needs access to your camera to take profile photos.",
+        "NSPhotoLibraryUsageDescription": "Improvify needs access to your photo library to select profile photos.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.improvify.app"
     },
     "web": {
       "bundler": "metro",
@@ -30,10 +37,33 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser",
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#6366F1"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Improvify needs access to your photos to let you choose a profile picture."
+        }
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "944950c4-9d0b-4202-8515-2cdcfe43c6d0"
+      },
+      "router": {}
+    },
+    "owner": "curro_rp"
   }
 }

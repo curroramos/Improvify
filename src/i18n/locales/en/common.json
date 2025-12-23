@@ -1,0 +1,52 @@
+{
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "done": "Done",
+    "next": "Next",
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "continue": "Continue",
+    "skip": "Skip",
+    "retry": "Retry",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "leave": "Leave",
+    "keepEditing": "Keep editing",
+    "getStarted": "Get Started"
+  },
+  "loading": "Loading...",
+  "saving": "Saving...",
+  "error": "Error",
+  "success": "Success",
+  "warning": "Warning",
+  "user": "User",
+  "version": "Improvify v{{version}}",
+  "errors": {
+    "generic": "An error occurred",
+    "network": "Network error. Please try again.",
+    "unauthorized": "Please log in first.",
+    "notFound": "Not found",
+    "tryAgain": "Please try again."
+  },
+  "permissions": {
+    "required": "Permission Required",
+    "photoLibrary": "Please allow access to your photo library to upload an avatar."
+  },
+  "upload": {
+    "failed": "Upload Failed",
+    "failedMessage": "Failed to upload avatar. Please try again."
+  },
+  "empty": {
+    "noData": "No data available"
+  },
+  "dates": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "expired": "Expired"
+  }
+}
