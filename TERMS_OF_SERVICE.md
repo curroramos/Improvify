@@ -229,13 +229,23 @@ Continued use after changes means you accept the new terms.
 
 ---
 
-## 15. Apple App Store Terms
+## 15. App Store Terms
+
+### Apple App Store
 
 If you downloaded Improvify from the Apple App Store:
 - These terms are between you and Improvify, not Apple
 - Apple has no obligation to provide support or maintenance
 - Apple is not responsible for product warranties or claims
 - Apple and its subsidiaries are third-party beneficiaries of these terms
+
+### Google Play Store
+
+If you downloaded Improvify from Google Play:
+- These terms are between you and Improvify, not Google
+- Google has no obligation to provide support or maintenance
+- Google is not responsible for product warranties or claims
+- Google and its subsidiaries are third-party beneficiaries of these terms
 
 ---
 
